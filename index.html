@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Umanity – 3 Goddesses Tournament</title>
+  <meta name="description"
+    content="Player Snake Draft with Countdown Timer and Live Animated Uma Draw for 3 Teams (Red, Blue, Yellow)">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-badges">
+        <div class="dot-team dot-red" title="Red Team"></div>
+        <div class="dot-team dot-blue" title="Blue Team"></div>
+        <div class="dot-team dot-yellow" title="Yellow Team"></div>
+      </div>
+      <div>
+        <div class="brand-title">
+          <span>UMA MUSUME</span>
+          <span style="font-weight:400; color:#b0a594;">|</span>
+          <span style="font-size:13px; font-weight:700; color:#5c5243;">King Halo is First Rate</span>
+        </div>
+        <div class="brand-sub">Red • Blue • Yellow Teams & Live Uma Draw</div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button onclick="resetFullTournament()" class="btn btn-outline btn-sm" style="color:var(--team-red);"
+        title="Reset all data and start a new tournament">
+        Delete All
+      </button>
+
+      <!-- TABS -->
+      <nav class="nav-tabs">
+        <button id="nav-btn-1" class="nav-btn active" onclick="switchTab(1)">
+          <span>👥</span> 1. Player Snake Draft
+        </button>
+        <button id="nav-btn-2" class="nav-btn" onclick="switchTab(2)">
+          <span>🎴</span> 2. Team Uma Draw
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================================================================
+         STAGE 1: PLAYER SNAKE DRAFT (RED - BLUE - YELLOW)
+    ================================================================ -->
+    <section id="tab-1" class="tab-content active">
+
+      <!-- Setup View -->
+      <div id="setup-view" class="setup-box">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚙️ Tournament Setup & Team Captains</span>
+          </div>
+
+          <div class="captains-grid">
+            <div class="captain-input-card red">
+              <label class="lbl" style="color:var(--team-red)">🔴 Red Captain</label>
+              <input id="cap-red" type="text" value="Captain Red" oninput="saveStateToStorage()">
+            </div>
+            <div class="captain-input-card blue">
+              <label class="lbl" style="color:var(--team-blue)">🔵 Blue Captain</label>
+              <input id="cap-blue" type="text" value="Captain Blue" oninput="saveStateToStorage()">
+            </div>
+            <div class="captain-input-card yellow">
+              <label class="lbl" style="color:var(--team-yellow)">🟡 Yellow Captain</label>
+              <input id="cap-yellow" type="text" value="Captain Yellow" oninput="saveStateToStorage()">
+            </div>
+          </div>
+
+          <!-- Timer Configuration Dropdown -->
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding:12px 14px; background:#f4ecda; border:1px solid #d4c4a5; border-radius:var(--radius-sm);">
+            <div>
+              <span style="font-size:12px; font-weight:800; color:var(--text-main); display:block;">⏱️ Pick Timer (Turn
+                Duration):</span>
+              <span style="font-size:11px; color:var(--text-muted);">Countdown per player pick during the snake
+                draft</span>
+            </div>
+            <select id="draft-timer-select" onchange="updateDraftTimerSetting()"
+              style="background:#fffcf7; border:1.5px solid #d4c4a7; border-radius:var(--radius-sm); padding:6px 12px; font-family:inherit; font-size:12px; font-weight:700; color:var(--text-main); outline:none;">
+              <option value="30">30 Seconds</option>
+              <option value="45">45 Seconds</option>
+              <option value="60" selected>60 Seconds (Default)</option>
+              <option value="90">90 Seconds</option>
+              <option value="120">120 Seconds</option>
+              <option value="0">Off (No Timer)</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label class="lbl">📋 Players List (One player per line):</label>
+            <textarea id="player-bulk-input" rows="8"
+              style="font-family:'JetBrains Mono',monospace; resize:vertical;"></textarea>
+            <div id="player-count-hint"
+              style="font-size:12px; color:var(--text-muted); margin-top:6px; font-weight:600;">24 players detected.
+            </div>
+          </div>
+
+          <button onclick="startSnakeDraft()" class="btn btn-primary" style="width: 100%; padding: 12px;">
+            🚀 Start Snake Draft
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Draft View -->
+      <div id="draft-live-view" class="hidden">
+        <!-- Status Bar -->
+        <div class="draft-status-bar">
+          <div class="draft-stats">
+            <div class="stat-badge">
+              <span class="stat-lbl">Round</span>
+              <span id="current-round-text" class="stat-val">1 / 8</span>
+            </div>
+            <div class="stat-badge">
+              <span class="stat-lbl">Total Picks</span>
+              <span id="current-pick-text" class="stat-val">1 / 24</span>
+            </div>
+            <div id="active-turn-badge" class="turn-pill red">
+              Turn: Red Team
+            </div>
+            <div id="draft-timer-container" class="draft-timer-badge">
+              <span>⏱️</span>
+              <span id="draft-timer-val">60s</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btn-timer-pause" onclick="toggleDraftTimer()" class="btn btn-outline btn-sm"
+              title="Pause / Resume Turn Timer">
+              ⏸️ Pause
+            </button>
+            <button onclick="undoPick()" class="btn btn-outline btn-sm">
+              ↩ Undo Pick
+            </button>
+            <button id="finish-stage1-btn" onclick="finishStage1()" class="btn btn-primary btn-sm hidden">
+              Proceed to Uma Draw ➔
+            </button>
+          </div>
+        </div>
+
+        <div class="draft-layout">
+          <!-- Player Pool -->
+          <div class="pool-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span class="card-title" style="font-size:12px;">Player Pool</span>
+              <span id="pool-count" class="pill-count">24</span>
+            </div>
+            <input id="player-search" type="text" placeholder="Search player..." oninput="renderPlayerPool()"
+              style="margin-bottom:8px; font-size:12px; padding:7px 10px;">
+            <div id="player-pool-list" class="pool-list"></div>
+          </div>
+
+          <!-- Team Rosters (3 Columns: Red - Blue - Yellow) -->
+          <div class="teams-panel">
+            <!-- Red Team -->
+            <div id="team-card-red" class="team-roster-card red">
+              <div class="team-roster-header">
+                <span class="team-tag red">🔴 Red Team</span>
+                <span id="red-roster-count" class="pill-count">1/9</span>
+              </div>
+              <div id="team-list-red"></div>
+            </div>
+
+            <!-- Blue Team -->
+            <div id="team-card-blue" class="team-roster-card blue">
+              <div class="team-roster-header">
+                <span class="team-tag blue">🔵 Blue Team</span>
+                <span id="blue-roster-count" class="pill-count">1/9</span>
+              </div>
+              <div id="team-list-blue"></div>
+            </div>
+
+            <!-- Yellow Team -->
+            <div id="team-card-yellow" class="team-roster-card yellow">
+              <div class="team-roster-header">
+                <span class="team-tag yellow">🟡 Yellow Team</span>
+                <span id="yellow-roster-count" class="pill-count">1/9</span>
+              </div>
+              <div id="team-list-yellow"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================================================================
+         STAGE 2: LIVE UMA DRAW CENTER
+    ================================================================ -->
+    <section id="tab-2" class="tab-content">
+
+      <!-- Hero Header & Live Actions -->
+      <div class="uma-draw-hero">
+        <div class="draw-hero-info">
+          <h2>🎴 3 Goddesses Live Uma Draw Center</h2>
+          <p>Draw all Umas one by one in real-time or distribute instantly across teams.</p>
+        </div>
+        <div class="draw-hero-actions">
+          <button id="btn-live-draw-all" onclick="toggleLiveSequentialDraw()" class="btn btn-primary"
+            style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
+            ⚡ Live Draw All (One by One)
+          </button>
+          <button id="btn-speed-toggle" onclick="cycleDrawSpeed()" class="btn btn-outline btn-sm hidden">
+            ⏩ Speed: <span id="speed-label">Normal (1x)</span>
+          </button>
+          <button onclick="instantDistributeAll()" class="btn btn-outline">
+            ⚡ Instant Distribute All
+          </button>
+          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);">
+            🔄 Reset Umas
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Draw Stage Area -->
+      <div class="draw-stage-container">
+        <!-- Progress Bar -->
+        <div id="draw-progress-wrapper" style="max-width:600px; margin:0 auto 20px;">
+          <div
+            style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; font-family:'JetBrains Mono',monospace;">
+            <span id="draw-status-text">Remaining Pool: 102 Umas</span>
+            <span id="draw-progress-percent">0%</span>
+          </div>
+          <div style="height:8px; background:#e8dcbe; border-radius:99px; overflow:hidden; border:1px solid #d5c49f;">
+            <div id="draw-progress-bar"
+              style="height:100%; width:0%; background:linear-gradient(90deg, #c92a2a, #1d4ed8, #f59e0b); transition:width 0.15s ease;">
+            </div>
+          </div>
+        </div>
+
+        <div class="draw-stage-title">🎯 Active Drawing Team:</div>
+
+        <div class="team-draw-selectors">
+          <button id="selector-red" onclick="setSelectedDrawTeam('red')" class="team-draw-btn red active">
+            🔴 Red Team
+          </button>
+          <button id="selector-blue" onclick="setSelectedDrawTeam('blue')" class="team-draw-btn blue">
+            🔵 Blue Team
+          </button>
+          <button id="selector-yellow" onclick="setSelectedDrawTeam('yellow')" class="team-draw-btn yellow">
+            🟡 Yellow Team
+          </button>
+        </div>
+
+        <!-- Mystery Card -->
+        <div class="gacha-card-wrapper">
+          <div id="gacha-box" class="gacha-card">
+            <span id="gacha-pot-badge" class="gacha-pot-tag pot-tag-1">READY</span>
+            <div id="gacha-name" class="gacha-uma-title">Draw an Uma ✨</div>
+            <div id="gacha-sub" style="font-size:12px; color:var(--text-muted); font-weight:600;">Click the live draw
+              button above to start drawing Umas in real-time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teams Drawn Uma Lists (3 Columns: Red - Blue - Yellow) -->
+      <div class="teams-uma-display">
+
+        <!-- Red Team Roster -->
+        <div class="team-uma-box red">
+          <div class="team-uma-box-header">
+            <div>
+              <span class="team-tag red">🔴 Red Team Umas</span>
+              <div id="red-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
+                Captain: -</div>
+            </div>
+            <span id="red-uma-count" class="pill-count">0 Umas</span>
+          </div>
+          <div id="red-uma-list" class="team-uma-scroll"></div>
+        </div>
+
+        <!-- Blue Team Roster -->
+        <div class="team-uma-box blue">
+          <div class="team-uma-box-header">
+            <div>
+              <span class="team-tag blue">🔵 Blue Team Umas</span>
+              <div id="blue-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
+                Captain: -</div>
+            </div>
+            <span id="blue-uma-count" class="pill-count">0 Umas</span>
+          </div>
+          <div id="blue-uma-list" class="team-uma-scroll"></div>
+        </div>
+
+        <!-- Yellow Team Roster -->
+        <div class="team-uma-box yellow">
+          <div class="team-uma-box-header">
+            <div>
+              <span class="team-tag yellow">🟡 Yellow Team Umas</span>
+              <div id="yellow-cap-sub"
+                style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">Captain: -</div>
+            </div>
+            <span id="yellow-uma-count" class="pill-count">0 Umas</span>
+          </div>
+          <div id="yellow-uma-list" class="team-uma-scroll"></div>
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <!-- SCRIPTS -->
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/draft.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
