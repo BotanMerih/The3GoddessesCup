@@ -182,7 +182,7 @@ function renderSnakeDraftBoard() {
       if (t === cur.team) card.classList.add('active-turn');
     });
 
-    document.getElementById('finish-stage1-btn')?.classList.add('hidden');
+    document.getElementById('btn-proceed-scoring')?.classList.add('hidden');
   } else {
     stopDraftTurnTimer();
     const badge = document.getElementById('active-turn-badge');
@@ -197,7 +197,8 @@ function renderSnakeDraftBoard() {
     TEAM_KEYS.forEach(t => {
       document.getElementById(`team-card-${t}`).classList.remove('active-turn');
     });
-    document.getElementById('finish-stage1-btn')?.classList.remove('hidden');
+
+    document.getElementById('btn-proceed-scoring')?.classList.remove('hidden');
   }
 }
 
@@ -228,6 +229,9 @@ function pickPlayer(name) {
     startDraftTurnTimer();
   } else {
     stopDraftTurnTimer();
+    setTimeout(() => {
+      switchTab(3);
+    }, 600);
   }
 
   saveStateToStorage();
@@ -242,9 +246,4 @@ function undoPick() {
   renderSnakeDraftBoard();
   startDraftTurnTimer();
   saveStateToStorage();
-}
-
-function finishStage1() {
-  stopDraftTurnTimer();
-  switchTab(2);
 }

@@ -18,7 +18,7 @@ function updateCaptainsAndSave() {
 
 function switchTab(tabNum, save = true) {
   currentTab = tabNum;
-  [1, 2].forEach(n => {
+  [1, 2, 3].forEach(n => {
     document.getElementById(`tab-${n}`)?.classList.remove('active');
     document.getElementById(`nav-btn-${n}`)?.classList.remove('active');
   });
@@ -32,12 +32,15 @@ function switchTab(tabNum, save = true) {
     updateCaptainSubtitles();
   } else if (tabNum === 2) {
     renderSnakeDraftBoard();
+  } else if (tabNum === 3) {
+    renderScoringTab();
   }
 
   if (save) saveStateToStorage();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  checkAndLoadStateFromURL();
   const hasSavedData = loadStateFromStorage();
   const inputEl = document.getElementById('player-bulk-input');
 
@@ -53,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTeamUmaLists();
   updateProgressUI();
   updateCaptainSubtitles();
+  renderScoringTab();
 
   if (inputEl) {
     inputEl.addEventListener('input', updatePlayerInputHint);

@@ -1,3 +1,15 @@
+function utf8ToBase64(str) {
+  return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+    return String.fromCharCode(parseInt(p1, 16));
+  }));
+}
+
+function base64ToUtf8(str) {
+  return decodeURIComponent(Array.prototype.map.call(window.atob(str), function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+}
+
 function saveStateToStorage() {
   const state = {
     teams,
@@ -12,6 +24,8 @@ function saveStateToStorage() {
     currentTab,
     currentRoundRobinIndex,
     turnDuration,
+    matches,
+    bonusPoints,
     isDraftActive: !document.getElementById('draft-live-view').classList.contains('hidden'),
     captainInputs: {
       red: document.getElementById('cap-red')?.value || "Captain Red",
@@ -57,6 +71,9 @@ function loadStateFromStorage() {
     if (state.selectedDrawTeam) selectedDrawTeam = state.selectedDrawTeam;
     if (typeof state.currentRoundRobinIndex === 'number') currentRoundRobinIndex = state.currentRoundRobinIndex;
 
+    if (Array.isArray(state.matches)) matches = state.matches;
+    if (state.bonusPoints) bonusPoints = state.bonusPoints;
+
     if (typeof state.turnDuration === 'number') {
       turnDuration = state.turnDuration;
       const select = document.getElementById('draft-timer-select');
@@ -92,6 +109,106 @@ function loadStateFromStorage() {
     console.warn('LocalStorage load failed:', e);
     return false;
   }
+}
+
+function copyShareableTournamentLink() {
+  saveStateToStorage();
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    alert("No tournament data to share.");
+    return;
+  }
+
+  try {
+    const encoded = utf8ToBase64(raw);
+    const url = new URL(window.location.href.split('#')[0].split('?')[0]);
+    url.hash = `state=${encoded}`;
+    const fullUrl = url.toString();
+
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      alert("📋 Serverless Share Link copied to clipboard!\n\nSend this link to any moderator or player. When they open it, the entire tournament will load automatically without any external server.");
+    }).catch(() => {
+      prompt("Copy this share URL:", fullUrl);
+    });
+  } catch (err) {
+    alert("Failed to generate share link: " + err.message);
+  }
+}
+
+function checkAndLoadStateFromURL() {
+  try {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#state=')) {
+      const encoded = hash.substring(7);
+      if (encoded) {
+        const jsonStr = base64ToUtf8(encoded);
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && parsed.teams) {
+          localStorage.setItem(STORAGE_KEY, jsonStr);
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+          return true;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse URL state:', e);
+  }
+  return false;
+}
+
+function exportTournamentSaveFile() {
+  saveStateToStorage();
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    alert("No tournament data found to export.");
+    return;
+  }
+  const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `umanity_tournament_save_${dateStr}.json`;
+  const blob = new Blob([raw], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function triggerImportTournamentFile() {
+  const input = document.getElementById('tournament-file-input');
+  if (input) {
+    input.value = "";
+    input.click();
+  }
+}
+
+function importTournamentSaveFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const content = e.target.result;
+      const parsed = JSON.parse(content);
+      if (!parsed.teams) {
+        alert("Invalid save file format! Missing tournament structure.");
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, content);
+      loadStateFromStorage();
+      renderTeamUmaLists();
+      updateProgressUI();
+      updateCaptainSubtitles();
+      if (typeof renderScoringTab === 'function') renderScoringTab();
+      alert("Tournament save successfully loaded! All data synced.");
+    } catch (err) {
+      alert("Failed to import save file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 function resetFullTournament() {

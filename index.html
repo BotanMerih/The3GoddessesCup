@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Umanity – 3 Goddesses Tournament</title>
   <meta name="description"
-    content="Player Snake Draft with Countdown Timer and Live Animated Uma Draw for 3 Teams (Red, Blue, Yellow)">
+    content="Player Snake Draft with Countdown Timer, Live Animated Uma Draw, and Tournament Match Scoring for 3 Teams">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -30,11 +30,21 @@
           <span style="font-weight:400; color:#b0a594;">|</span>
           <span style="font-size:13px; font-weight:700; color:#5c5243;">King Halo is First Rate</span>
         </div>
-        <div class="brand-sub">Red • Blue • Yellow Teams & Live Uma Draw</div>
+        <div class="brand-sub">Red • Blue • Yellow Teams, Live Draw & Match Scoring</div>
       </div>
     </div>
 
     <div class="header-right">
+      <button onclick="copyShareableTournamentLink()" class="btn btn-primary btn-sm" style="background:#b45309; color:#fff; border:none;" title="Copy instant serverless share link with all tournament data">
+        🔗 Share Link
+      </button>
+      <button onclick="exportTournamentSaveFile()" class="btn btn-outline btn-sm" title="Download backup save file (.json)">
+        💾 Export Save
+      </button>
+      <button onclick="triggerImportTournamentFile()" class="btn btn-outline btn-sm" title="Load backup save file (.json)">
+        📂 Import Save
+      </button>
+      <input type="file" id="tournament-file-input" accept=".json" style="display:none;" onchange="importTournamentSaveFile(event)">
       <button onclick="resetFullTournament()" class="btn btn-outline btn-sm" style="color:var(--team-red);"
         title="Reset all data and start a new tournament">
         Delete All
@@ -47,12 +57,14 @@
         <button id="nav-btn-2" class="nav-btn" onclick="switchTab(2)">
           <span>👥</span> 2. Player Snake Draft
         </button>
+        <button id="nav-btn-3" class="nav-btn" onclick="switchTab(3)">
+          <span>🏆</span> 3. Tournament Scoring
+        </button>
       </nav>
     </div>
   </header>
 
   <main>
-    <!-- TAB 1: TEAM UMA DRAW -->
     <section id="tab-1" class="tab-content active">
 
       <div class="uma-draw-hero">
@@ -156,7 +168,6 @@
 
     </section>
 
-    <!-- TAB 2: PLAYER SNAKE DRAFT -->
     <section id="tab-2" class="tab-content">
 
       <div id="setup-view" class="setup-box">
@@ -235,6 +246,10 @@
           </div>
 
           <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btn-proceed-scoring" onclick="switchTab(3)" class="btn btn-primary btn-sm hidden"
+              style="background:var(--team-yellow-gradient); color:#fff; border:none;">
+              🏆 Proceed to Scoring ➔
+            </button>
             <button id="btn-timer-pause" onclick="toggleDraftTimer()" class="btn btn-outline btn-sm"
               title="Pause / Resume Turn Timer">
               ⏸️ Pause
@@ -285,6 +300,235 @@
       </div>
 
     </section>
+
+    <section id="tab-3" class="tab-content">
+      <div class="score-hero">
+        <div class="score-hero-info">
+          <h2>🏆 Tournament Match Scoring & Leaderboard</h2>
+          <p>Record top 5 race placements (1st=10p, 2nd=7p, 3rd=5p, 4th=3p, 5th=1p) and monitor live team and player standings.</p>
+        </div>
+        <div class="score-hero-actions">
+          <button onclick="resetTournamentScores()" class="btn btn-outline btn-sm" style="color:var(--team-red);">
+            🔄 Reset Scores
+          </button>
+        </div>
+      </div>
+
+      <div id="scoring-leaderboard-grid" class="scoring-leaderboard-grid"></div>
+
+      <div class="scoring-two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏁 Record Race Placements (Top 5)</span>
+          </div>
+
+          <form id="record-race-form" onsubmit="recordRaceResult(event)">
+            <div style="margin-bottom:14px;">
+              <label class="lbl">Race / Match Title:</label>
+              <input id="race-title-input" type="text" value="Race 1" placeholder="e.g. Race 1 - Tokyo Turf 2400m" required>
+            </div>
+
+            <div class="placement-entry-box first">
+              <div class="placement-header">
+                <span class="placement-tag first">🥇 1st Place</span>
+                <div class="pts-input-wrap">
+                  <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
+                  <input id="race-first-pts" type="number" value="10" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                </div>
+              </div>
+              <div class="placement-fields">
+                <div>
+                  <label class="lbl">Team</label>
+                  <select id="race-first-team" onchange="onRacePlacementTeamChange('first')" class="score-select" required>
+                    <option value="">-- Team --</option>
+                    <option value="red">🔴 Red Team</option>
+                    <option value="blue">🔵 Blue Team</option>
+                    <option value="yellow">🟡 Yellow Team</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Player</label>
+                  <select id="race-first-player" class="score-select">
+                    <option value="">-- Select Player --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Uma Musume</label>
+                  <select id="race-first-uma" class="score-select">
+                    <option value="">-- Select Uma --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="placement-entry-box second">
+              <div class="placement-header">
+                <span class="placement-tag second">🥈 2nd Place</span>
+                <div class="pts-input-wrap">
+                  <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
+                  <input id="race-second-pts" type="number" value="7" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                </div>
+              </div>
+              <div class="placement-fields">
+                <div>
+                  <label class="lbl">Team</label>
+                  <select id="race-second-team" onchange="onRacePlacementTeamChange('second')" class="score-select" required>
+                    <option value="">-- Team --</option>
+                    <option value="red">🔴 Red Team</option>
+                    <option value="blue">🔵 Blue Team</option>
+                    <option value="yellow">🟡 Yellow Team</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Player</label>
+                  <select id="race-second-player" class="score-select">
+                    <option value="">-- Select Player --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Uma Musume</label>
+                  <select id="race-second-uma" class="score-select">
+                    <option value="">-- Select Uma --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="placement-entry-box third">
+              <div class="placement-header">
+                <span class="placement-tag third">🥉 3rd Place</span>
+                <div class="pts-input-wrap">
+                  <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
+                  <input id="race-third-pts" type="number" value="5" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                </div>
+              </div>
+              <div class="placement-fields">
+                <div>
+                  <label class="lbl">Team</label>
+                  <select id="race-third-team" onchange="onRacePlacementTeamChange('third')" class="score-select" required>
+                    <option value="">-- Team --</option>
+                    <option value="red">🔴 Red Team</option>
+                    <option value="blue">🔵 Blue Team</option>
+                    <option value="yellow">🟡 Yellow Team</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Player</label>
+                  <select id="race-third-player" class="score-select">
+                    <option value="">-- Select Player --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Uma Musume</label>
+                  <select id="race-third-uma" class="score-select">
+                    <option value="">-- Select Uma --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="placement-entry-box fourth">
+              <div class="placement-header">
+                <span class="placement-tag fourth">🎖️ 4th Place</span>
+                <div class="pts-input-wrap">
+                  <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
+                  <input id="race-fourth-pts" type="number" value="3" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                </div>
+              </div>
+              <div class="placement-fields">
+                <div>
+                  <label class="lbl">Team</label>
+                  <select id="race-fourth-team" onchange="onRacePlacementTeamChange('fourth')" class="score-select" required>
+                    <option value="">-- Team --</option>
+                    <option value="red">🔴 Red Team</option>
+                    <option value="blue">🔵 Blue Team</option>
+                    <option value="yellow">🟡 Yellow Team</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Player</label>
+                  <select id="race-fourth-player" class="score-select">
+                    <option value="">-- Select Player --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Uma Musume</label>
+                  <select id="race-fourth-uma" class="score-select">
+                    <option value="">-- Select Uma --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="placement-entry-box fifth">
+              <div class="placement-header">
+                <span class="placement-tag fifth">🎖️ 5th Place</span>
+                <div class="pts-input-wrap">
+                  <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
+                  <input id="race-fifth-pts" type="number" value="1" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                </div>
+              </div>
+              <div class="placement-fields">
+                <div>
+                  <label class="lbl">Team</label>
+                  <select id="race-fifth-team" onchange="onRacePlacementTeamChange('fifth')" class="score-select" required>
+                    <option value="">-- Team --</option>
+                    <option value="red">🔴 Red Team</option>
+                    <option value="blue">🔵 Blue Team</option>
+                    <option value="yellow">🟡 Yellow Team</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Player</label>
+                  <select id="race-fifth-player" class="score-select">
+                    <option value="">-- Select Player --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="lbl">Uma Musume</label>
+                  <select id="race-fifth-uma" class="score-select">
+                    <option value="">-- Select Uma --</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; margin-top:8px;">
+              💾 Record Race Result & Update Standings
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📜 Race Match History</span>
+            <span id="match-count-badge" class="pill-count">0 Races</span>
+          </div>
+          <div id="match-history-list" class="match-history-scroll"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="card-header">
+          <span class="card-title">👤 Individual Player Performance Leaderboard</span>
+        </div>
+        <div class="table-responsive" style="overflow-x:auto;">
+          <table class="scoring-player-table">
+            <thead>
+              <tr>
+                <th style="width:50px;">#</th>
+                <th>Player</th>
+                <th>Team</th>
+                <th style="text-align:center;">1st Wins</th>
+                <th style="text-align:center;">Top 5 Finishes</th>
+                <th style="text-align:right;">Points Contributed</th>
+              </tr>
+            </thead>
+            <tbody id="player-leaderboard-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script src="js/data.js"></script>
@@ -292,6 +536,7 @@
   <script src="js/storage.js"></script>
   <script src="js/draft.js"></script>
   <script src="js/draw.js"></script>
+  <script src="js/score.js"></script>
   <script src="js/app.js"></script>
 </body>
 
