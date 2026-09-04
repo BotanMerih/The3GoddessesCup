@@ -1,7 +1,3 @@
-// ==========================================
-// STAGE 1: DYNAMIC SNAKE DRAFT & TIMER
-// ==========================================
-
 function updateDraftTimerSetting() {
   const select = document.getElementById('draft-timer-select');
   turnDuration = parseInt(select.value, 10);
@@ -47,7 +43,6 @@ function startDraftTurnTimer() {
     timerVal.textContent = `${Math.max(0, turnTimeRemaining)}s`;
 
     if (turnTimeRemaining <= 0) {
-      // Time expired -> Alert sound and Auto-pick first player
       playBeep(440, 'triangle', 0.25);
       setTimeout(() => playBeep(330, 'triangle', 0.3), 150);
 
@@ -117,6 +112,8 @@ function startSnakeDraft() {
   teams.blue.players = [];
   teams.yellow.players = [];
 
+  assignRandomPackages();
+
   document.getElementById('red-cap-sub').textContent = `Captain: ${teams.red.cap}`;
   document.getElementById('blue-cap-sub').textContent = `Captain: ${teams.blue.cap}`;
   document.getElementById('yellow-cap-sub').textContent = `Captain: ${teams.yellow.cap}`;
@@ -185,7 +182,7 @@ function renderSnakeDraftBoard() {
       if (t === cur.team) card.classList.add('active-turn');
     });
 
-    document.getElementById('finish-stage1-btn').classList.add('hidden');
+    document.getElementById('finish-stage1-btn')?.classList.add('hidden');
   } else {
     stopDraftTurnTimer();
     const badge = document.getElementById('active-turn-badge');
@@ -200,7 +197,7 @@ function renderSnakeDraftBoard() {
     TEAM_KEYS.forEach(t => {
       document.getElementById(`team-card-${t}`).classList.remove('active-turn');
     });
-    document.getElementById('finish-stage1-btn').classList.remove('hidden');
+    document.getElementById('finish-stage1-btn')?.classList.remove('hidden');
   }
 }
 

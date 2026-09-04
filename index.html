@@ -40,25 +40,125 @@
         Delete All
       </button>
 
-      <!-- TABS -->
       <nav class="nav-tabs">
         <button id="nav-btn-1" class="nav-btn active" onclick="switchTab(1)">
-          <span>👥</span> 1. Player Snake Draft
+          <span>🎴</span> 1. Team Uma Draw
         </button>
         <button id="nav-btn-2" class="nav-btn" onclick="switchTab(2)">
-          <span>🎴</span> 2. Team Uma Draw
+          <span>👥</span> 2. Player Snake Draft
         </button>
       </nav>
     </div>
   </header>
 
   <main>
-    <!-- ================================================================
-         STAGE 1: PLAYER SNAKE DRAFT (RED - BLUE - YELLOW)
-    ================================================================ -->
+    <!-- TAB 1: TEAM UMA DRAW -->
     <section id="tab-1" class="tab-content active">
 
-      <!-- Setup View -->
+      <div class="uma-draw-hero">
+        <div class="draw-hero-info">
+          <h2>🎴 3 Goddesses Live Uma Draw Center</h2>
+          <p>Draw all Umas one by one in real-time across teams.</p>
+        </div>
+        <div class="draw-hero-actions">
+          <button id="btn-live-draw-all" onclick="toggleLiveSequentialDraw()" class="btn btn-primary"
+            style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
+            ⚡ Canlı Kura Çek (Sırayla)
+          </button>
+          <button id="btn-speed-toggle" onclick="cycleDrawSpeed()" class="btn btn-outline btn-sm hidden">
+            ⏩ Hız: <span id="speed-label">Normal (1x)</span>
+          </button>
+          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);">
+            🔄 Kuraları Sıfırla
+          </button>
+          <button id="btn-proceed-to-draft" onclick="switchTab(2)" class="btn btn-primary btn-sm hidden">
+            Proceed to Player Draft ➔
+          </button>
+        </div>
+      </div>
+
+      <div class="draw-stage-container">
+        <div id="draw-progress-wrapper" style="max-width:600px; margin:0 auto 20px;">
+          <div
+            style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; font-family:'JetBrains Mono',monospace;">
+            <span id="draw-status-text">Kalan Havuz: 102 Uma</span>
+            <span id="draw-progress-percent">0%</span>
+          </div>
+          <div style="height:8px; background:#e8dcbe; border-radius:99px; overflow:hidden; border:1px solid #d5c49f;">
+            <div id="draw-progress-bar"
+              style="height:100%; width:0%; background:linear-gradient(90deg, #c92a2a, #1d4ed8, #f59e0b); transition:width 0.15s ease;">
+            </div>
+          </div>
+        </div>
+
+        <div class="draw-stage-title">🎯 Aktif Çekim Yapan Takım:</div>
+
+        <div class="team-draw-selectors">
+          <button id="selector-red" onclick="setSelectedDrawTeam('red')" class="team-draw-btn red active">
+            🔴 Red Team
+          </button>
+          <button id="selector-blue" onclick="setSelectedDrawTeam('blue')" class="team-draw-btn blue">
+            🔵 Blue Team
+          </button>
+          <button id="selector-yellow" onclick="setSelectedDrawTeam('yellow')" class="team-draw-btn yellow">
+            🟡 Yellow Team
+          </button>
+        </div>
+
+        <div class="gacha-card-wrapper">
+          <div id="gacha-box" class="gacha-card">
+            <span id="gacha-pot-badge" class="gacha-pot-tag pot-tag-1">HAZIR</span>
+            <div id="gacha-name" class="gacha-uma-title">Uma Çek ✨</div>
+            <div id="gacha-sub" style="font-size:12px; color:var(--text-muted); font-weight:600;">Canlı çekim başlatmak için yukarıdaki butona tıklayın</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="teams-uma-display">
+
+        <div class="team-uma-box red">
+          <div class="team-uma-box-header">
+            <div>
+              <span class="team-tag red">🔴 Red Team Umas</span>
+              <div id="red-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
+                Captain: Captain Red</div>
+            </div>
+            <span id="red-uma-count" class="pill-count">0/34 Umas</span>
+          </div>
+          <div id="red-uma-list" class="team-uma-scroll"></div>
+        </div>
+
+        <div class="team-uma-box blue">
+          <div class="team-uma-box-header">
+            <div>
+              <span class="team-tag blue">🔵 Blue Team Umas</span>
+              <div id="blue-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
+                Captain: Captain Blue</div>
+            </div>
+            <span id="blue-uma-count" class="pill-count">0/34 Umas</span>
+          </div>
+          <div id="blue-uma-list" class="team-uma-scroll"></div>
+        </div>
+
+        <div class="team-uma-box yellow">
+          <div class="team-uma-box-header">
+            <div>
+              <span class="team-tag yellow">🟡 Yellow Team Umas</span>
+              <div id="yellow-cap-sub"
+                style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">Captain: Captain Yellow</div>
+            </div>
+            <span id="yellow-uma-count" class="pill-count">0/34 Umas</span>
+          </div>
+          <div id="yellow-uma-list" class="team-uma-scroll"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TAB 2: PLAYER SNAKE DRAFT -->
+    <section id="tab-2" class="tab-content">
+
       <div id="setup-view" class="setup-box">
         <div class="card">
           <div class="card-header">
@@ -68,19 +168,18 @@
           <div class="captains-grid">
             <div class="captain-input-card red">
               <label class="lbl" style="color:var(--team-red)">🔴 Red Captain</label>
-              <input id="cap-red" type="text" value="Captain Red" oninput="saveStateToStorage()">
+              <input id="cap-red" type="text" value="Captain Red" oninput="updateCaptainsAndSave()">
             </div>
             <div class="captain-input-card blue">
               <label class="lbl" style="color:var(--team-blue)">🔵 Blue Captain</label>
-              <input id="cap-blue" type="text" value="Captain Blue" oninput="saveStateToStorage()">
+              <input id="cap-blue" type="text" value="Captain Blue" oninput="updateCaptainsAndSave()">
             </div>
             <div class="captain-input-card yellow">
               <label class="lbl" style="color:var(--team-yellow)">🟡 Yellow Captain</label>
-              <input id="cap-yellow" type="text" value="Captain Yellow" oninput="saveStateToStorage()">
+              <input id="cap-yellow" type="text" value="Captain Yellow" oninput="updateCaptainsAndSave()">
             </div>
           </div>
 
-          <!-- Timer Configuration Dropdown -->
           <div
             style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding:12px 14px; background:#f4ecda; border:1px solid #d4c4a5; border-radius:var(--radius-sm);">
             <div>
@@ -115,9 +214,7 @@
         </div>
       </div>
 
-      <!-- Live Draft View -->
       <div id="draft-live-view" class="hidden">
-        <!-- Status Bar -->
         <div class="draft-status-bar">
           <div class="draft-stats">
             <div class="stat-badge">
@@ -145,14 +242,10 @@
             <button onclick="undoPick()" class="btn btn-outline btn-sm">
               ↩ Undo Pick
             </button>
-            <button id="finish-stage1-btn" onclick="finishStage1()" class="btn btn-primary btn-sm hidden">
-              Proceed to Uma Draw ➔
-            </button>
           </div>
         </div>
 
         <div class="draft-layout">
-          <!-- Player Pool -->
           <div class="pool-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
               <span class="card-title" style="font-size:12px;">Player Pool</span>
@@ -163,9 +256,7 @@
             <div id="player-pool-list" class="pool-list"></div>
           </div>
 
-          <!-- Team Rosters (3 Columns: Red - Blue - Yellow) -->
           <div class="teams-panel">
-            <!-- Red Team -->
             <div id="team-card-red" class="team-roster-card red">
               <div class="team-roster-header">
                 <span class="team-tag red">🔴 Red Team</span>
@@ -174,7 +265,6 @@
               <div id="team-list-red"></div>
             </div>
 
-            <!-- Blue Team -->
             <div id="team-card-blue" class="team-roster-card blue">
               <div class="team-roster-header">
                 <span class="team-tag blue">🔵 Blue Team</span>
@@ -183,7 +273,6 @@
               <div id="team-list-blue"></div>
             </div>
 
-            <!-- Yellow Team -->
             <div id="team-card-yellow" class="team-roster-card yellow">
               <div class="team-roster-header">
                 <span class="team-tag yellow">🟡 Yellow Team</span>
@@ -196,124 +285,8 @@
       </div>
 
     </section>
-
-    <!-- ================================================================
-         STAGE 2: LIVE UMA DRAW CENTER
-    ================================================================ -->
-    <section id="tab-2" class="tab-content">
-
-      <!-- Hero Header & Live Actions -->
-      <div class="uma-draw-hero">
-        <div class="draw-hero-info">
-          <h2>🎴 3 Goddesses Live Uma Draw Center</h2>
-          <p>Draw all Umas one by one in real-time or distribute instantly across teams.</p>
-        </div>
-        <div class="draw-hero-actions">
-          <button id="btn-live-draw-all" onclick="toggleLiveSequentialDraw()" class="btn btn-primary"
-            style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
-            ⚡ Live Draw All (One by One)
-          </button>
-          <button id="btn-speed-toggle" onclick="cycleDrawSpeed()" class="btn btn-outline btn-sm hidden">
-            ⏩ Speed: <span id="speed-label">Normal (1x)</span>
-          </button>
-          <button onclick="instantDistributeAll()" class="btn btn-outline">
-            ⚡ Instant Distribute All
-          </button>
-          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);">
-            🔄 Reset Umas
-          </button>
-        </div>
-      </div>
-
-      <!-- Live Draw Stage Area -->
-      <div class="draw-stage-container">
-        <!-- Progress Bar -->
-        <div id="draw-progress-wrapper" style="max-width:600px; margin:0 auto 20px;">
-          <div
-            style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; font-family:'JetBrains Mono',monospace;">
-            <span id="draw-status-text">Remaining Pool: 102 Umas</span>
-            <span id="draw-progress-percent">0%</span>
-          </div>
-          <div style="height:8px; background:#e8dcbe; border-radius:99px; overflow:hidden; border:1px solid #d5c49f;">
-            <div id="draw-progress-bar"
-              style="height:100%; width:0%; background:linear-gradient(90deg, #c92a2a, #1d4ed8, #f59e0b); transition:width 0.15s ease;">
-            </div>
-          </div>
-        </div>
-
-        <div class="draw-stage-title">🎯 Active Drawing Team:</div>
-
-        <div class="team-draw-selectors">
-          <button id="selector-red" onclick="setSelectedDrawTeam('red')" class="team-draw-btn red active">
-            🔴 Red Team
-          </button>
-          <button id="selector-blue" onclick="setSelectedDrawTeam('blue')" class="team-draw-btn blue">
-            🔵 Blue Team
-          </button>
-          <button id="selector-yellow" onclick="setSelectedDrawTeam('yellow')" class="team-draw-btn yellow">
-            🟡 Yellow Team
-          </button>
-        </div>
-
-        <!-- Mystery Card -->
-        <div class="gacha-card-wrapper">
-          <div id="gacha-box" class="gacha-card">
-            <span id="gacha-pot-badge" class="gacha-pot-tag pot-tag-1">READY</span>
-            <div id="gacha-name" class="gacha-uma-title">Draw an Uma ✨</div>
-            <div id="gacha-sub" style="font-size:12px; color:var(--text-muted); font-weight:600;">Click the live draw
-              button above to start drawing Umas in real-time</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Teams Drawn Uma Lists (3 Columns: Red - Blue - Yellow) -->
-      <div class="teams-uma-display">
-
-        <!-- Red Team Roster -->
-        <div class="team-uma-box red">
-          <div class="team-uma-box-header">
-            <div>
-              <span class="team-tag red">🔴 Red Team Umas</span>
-              <div id="red-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
-                Captain: -</div>
-            </div>
-            <span id="red-uma-count" class="pill-count">0 Umas</span>
-          </div>
-          <div id="red-uma-list" class="team-uma-scroll"></div>
-        </div>
-
-        <!-- Blue Team Roster -->
-        <div class="team-uma-box blue">
-          <div class="team-uma-box-header">
-            <div>
-              <span class="team-tag blue">🔵 Blue Team Umas</span>
-              <div id="blue-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
-                Captain: -</div>
-            </div>
-            <span id="blue-uma-count" class="pill-count">0 Umas</span>
-          </div>
-          <div id="blue-uma-list" class="team-uma-scroll"></div>
-        </div>
-
-        <!-- Yellow Team Roster -->
-        <div class="team-uma-box yellow">
-          <div class="team-uma-box-header">
-            <div>
-              <span class="team-tag yellow">🟡 Yellow Team Umas</span>
-              <div id="yellow-cap-sub"
-                style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">Captain: -</div>
-            </div>
-            <span id="yellow-uma-count" class="pill-count">0 Umas</span>
-          </div>
-          <div id="yellow-uma-list" class="team-uma-scroll"></div>
-        </div>
-
-      </div>
-
-    </section>
   </main>
 
-  <!-- SCRIPTS -->
   <script src="js/data.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/storage.js"></script>

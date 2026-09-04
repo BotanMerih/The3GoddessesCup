@@ -1,6 +1,3 @@
-// ==========================================
-// LOCALSTORAGE STATE PERSISTENCE
-// ==========================================
 function saveStateToStorage() {
   const state = {
     teams,
@@ -36,10 +33,23 @@ function loadStateFromStorage() {
     if (!raw) return false;
     const state = JSON.parse(raw);
 
-    if (state.teams) teams = state.teams;
+    if (state.teams) {
+      teams = state.teams;
+      if (!teams.red.package) teams.red.package = "A";
+      if (!teams.blue.package) teams.blue.package = "B";
+      if (!teams.yellow.package) teams.yellow.package = "C";
+    }
     if (state.availablePot1) availablePot1 = state.availablePot1;
-    if (state.availablePot2) availablePot2 = state.availablePot2;
-    if (state.availablePot3) availablePot3 = state.availablePot3;
+    if (state.availablePot2) {
+      availablePot2 = state.availablePot2.filter(u => u !== "Nakayama Festa" && POT_2.includes(u));
+    }
+    if (state.availablePot3) {
+      availablePot3 = state.availablePot3.filter(u => POT_3.includes(u));
+      const isAlreadyDrawn = Object.values(teams).some(t => t.umas && t.umas.includes("Mihono Bourbon (Valentine)"));
+      if (!isAlreadyDrawn && !availablePot3.includes("Mihono Bourbon (Valentine)")) {
+        availablePot3.push("Mihono Bourbon (Valentine)");
+      }
+    }
     if (state.playerPool) playerPool = state.playerPool;
     if (state.snakeDraftOrder) snakeDraftOrder = state.snakeDraftOrder;
     if (typeof state.currentPickIndex === 'number') currentPickIndex = state.currentPickIndex;
@@ -57,6 +67,7 @@ function loadStateFromStorage() {
       if (document.getElementById('cap-red')) document.getElementById('cap-red').value = state.captainInputs.red || "Captain Red";
       if (document.getElementById('cap-blue')) document.getElementById('cap-blue').value = state.captainInputs.blue || "Captain Blue";
       if (document.getElementById('cap-yellow')) document.getElementById('cap-yellow').value = state.captainInputs.yellow || "Captain Yellow";
+      if (typeof updateCaptainSubtitles === 'function') updateCaptainSubtitles();
     }
 
     if (state.playerBulkText && document.getElementById('player-bulk-input')) {

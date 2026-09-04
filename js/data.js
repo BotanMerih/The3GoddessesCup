@@ -1,6 +1,3 @@
-// ==========================================
-// 1. UMA POOLS DATA (3 POTS - 102 UMAS)
-// ==========================================
 const POT_1 = [
   "Haru Urara", "Matikanetannhauser", "Vodka", "Mayano Top Gun", "Air Groove",
   "Sakura Bakushin O", "Super Creek", "Grass Wonder", "King Halo", "Nice Nature",
@@ -16,7 +13,7 @@ const POT_2 = [
   "Copano Rickey", "Sakura Chiyono O", "Eishin Flash", "Mejiro Dober", "Narita Taishin",
   "Narita Brian", "Sweep Tosho", "TM Opera O", "Seiun Sky", "Aston Machan",
   "Curren Chan", "Mihono Bourbon", "Nishino Flower", "Taiki Shuttle", "Yukino Bijin",
-  "Rice Shower", "Ines Fujin", "Smart Falcon", "Nakayama Festa", "Hishi Amazon",
+  "Rice Shower", "Ines Fujin", "Smart Falcon", "Hishi Amazon",
   "Tamamo Cross", "Satono Diamond", "Air Shakur", "Tosen Jordan", "Seeking the Pearl",
   "Mejiro Bright", "Maruzensky", "Hishi Akebono", "Tokai Teio", "Special Week"
 ];
@@ -33,7 +30,7 @@ const POT_3 = [
   "Air Groove (Wedding)", "Mejiro McQueen (Summer)", "Special Week (Summer)",
   "Agnes Digital (Halloween)", "Winning Ticket (Steampunk)", "Biwa Hayahide (Christmas)",
   "Nice Nature (Cheerleader)", "Gold Ship (Summer)", "Haru Urara (New Year)",
-  "Tokai Teio (Anime)", "King Halo (Cheerleader)"
+  "Tokai Teio (Anime)", "King Halo (Cheerleader)", "Mihono Bourbon (Valentine)"
 ];
 
 const UMA_POT_MAP = {};
@@ -41,15 +38,31 @@ POT_1.forEach(u => UMA_POT_MAP[u] = 1);
 POT_2.forEach(u => UMA_POT_MAP[u] = 2);
 POT_3.forEach(u => UMA_POT_MAP[u] = 3);
 
+const POOL_PACKAGES = {
+  A: { id: 'A', name: 'Paket A', pot1: 6, pot2: 16, pot3: 12, total: 34 },
+  B: { id: 'B', name: 'Paket B', pot1: 6, pot2: 16, pot3: 12, total: 34 },
+  C: { id: 'C', name: 'Paket C', pot1: 5, pot2: 17, pot3: 12, total: 34 }
+};
+
 const TEAM_KEYS = ['red', 'blue', 'yellow'];
 const TOTAL_INITIAL_UMAS = POT_1.length + POT_2.length + POT_3.length;
 const STORAGE_KEY = 'UMA_3GODDESSES_DATA_V2';
 
-// Global tournament state
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const _initPkgs = shuffleArray(['A', 'B', 'C']);
+
 let teams = {
-  red:    { name: "Red",    cap: "Captain Red",    players: [], umas: [] },
-  blue:   { name: "Blue",   cap: "Captain Blue",   players: [], umas: [] },
-  yellow: { name: "Yellow", cap: "Captain Yellow", players: [], umas: [] }
+  red:    { name: "Red",    cap: "Captain Red",    package: _initPkgs[0], players: [], umas: [] },
+  blue:   { name: "Blue",   cap: "Captain Blue",   package: _initPkgs[1], players: [], umas: [] },
+  yellow: { name: "Yellow", cap: "Captain Yellow", package: _initPkgs[2], players: [], umas: [] }
 };
 
 let availablePot1 = [...POT_1];
@@ -69,8 +82,7 @@ let sequentialTimer = null;
 let sequentialSpeed = 220;
 let currentRoundRobinIndex = 0;
 
-// Draft Timer State
-let turnDuration = 60; // seconds (0 = off)
+let turnDuration = 60;
 let turnTimeRemaining = 60;
 let draftTimerInterval = null;
 let isDraftTimerPaused = false;

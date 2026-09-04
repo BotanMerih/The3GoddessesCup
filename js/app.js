@@ -1,6 +1,20 @@
-// ==========================================
-// APP BOOTSTRAP & TAB NAVIGATION
-// ==========================================
+function updateCaptainSubtitles() {
+  const redCap = teams.red.cap || document.getElementById('cap-red')?.value || "Captain Red";
+  const blueCap = teams.blue.cap || document.getElementById('cap-blue')?.value || "Captain Blue";
+  const yellowCap = teams.yellow.cap || document.getElementById('cap-yellow')?.value || "Captain Yellow";
+
+  if (document.getElementById('red-cap-sub')) document.getElementById('red-cap-sub').textContent = `Captain: ${redCap}`;
+  if (document.getElementById('blue-cap-sub')) document.getElementById('blue-cap-sub').textContent = `Captain: ${blueCap}`;
+  if (document.getElementById('yellow-cap-sub')) document.getElementById('yellow-cap-sub').textContent = `Captain: ${yellowCap}`;
+}
+
+function updateCaptainsAndSave() {
+  teams.red.cap = document.getElementById('cap-red')?.value.trim() || "Captain Red";
+  teams.blue.cap = document.getElementById('cap-blue')?.value.trim() || "Captain Blue";
+  teams.yellow.cap = document.getElementById('cap-yellow')?.value.trim() || "Captain Yellow";
+  updateCaptainSubtitles();
+  saveStateToStorage();
+}
 
 function switchTab(tabNum, save = true) {
   currentTab = tabNum;
@@ -12,18 +26,17 @@ function switchTab(tabNum, save = true) {
   document.getElementById(`tab-${tabNum}`)?.classList.add('active');
   document.getElementById(`nav-btn-${tabNum}`)?.classList.add('active');
 
-  if (tabNum === 2) {
+  if (tabNum === 1) {
     renderTeamUmaLists();
     updateProgressUI();
-    if (document.getElementById('red-cap-sub')) document.getElementById('red-cap-sub').textContent = `Captain: ${teams.red.cap}`;
-    if (document.getElementById('blue-cap-sub')) document.getElementById('blue-cap-sub').textContent = `Captain: ${teams.blue.cap}`;
-    if (document.getElementById('yellow-cap-sub')) document.getElementById('yellow-cap-sub').textContent = `Captain: ${teams.yellow.cap}`;
+    updateCaptainSubtitles();
+  } else if (tabNum === 2) {
+    renderSnakeDraftBoard();
   }
 
   if (save) saveStateToStorage();
 }
 
-// Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   const hasSavedData = loadStateFromStorage();
   const inputEl = document.getElementById('player-bulk-input');
@@ -35,11 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePlayerInputHint();
   } else {
     updatePlayerInputHint();
-    if (currentTab === 2) {
-      renderTeamUmaLists();
-      updateProgressUI();
-    }
   }
+
+  renderTeamUmaLists();
+  updateProgressUI();
+  updateCaptainSubtitles();
 
   if (inputEl) {
     inputEl.addEventListener('input', updatePlayerInputHint);

@@ -1,6 +1,36 @@
-// ==========================================
-// STAGE 2: LIVE UMA DRAW SYSTEM
-// ==========================================
+function assignRandomPackages() {
+  const pkgs = shuffleArray(['A', 'B', 'C']);
+  teams.red.package = pkgs[0];
+  teams.blue.package = pkgs[1];
+  teams.yellow.package = pkgs[2];
+  saveStateToStorage();
+}
+
+function ensureRandomPackageAssignment() {
+  const currentPkgs = [teams.red?.package, teams.blue?.package, teams.yellow?.package];
+  const isValid = currentPkgs.includes('A') && currentPkgs.includes('B') && currentPkgs.includes('C');
+  if (!isValid) {
+    assignRandomPackages();
+  }
+}
+
+function getTeamPotCounts(teamKey) {
+  const umas = teams[teamKey]?.umas || [];
+  let p1 = 0, p2 = 0, p3 = 0;
+  umas.forEach(u => {
+    const p = UMA_POT_MAP[u];
+    if (p === 1) p1++;
+    else if (p === 2) p2++;
+    else if (p === 3) p3++;
+  });
+  return { pot1: p1, pot2: p2, pot3: p3, total: umas.length };
+}
+
+function getTeamPackageInfo(teamKey) {
+  ensureRandomPackageAssignment();
+  const pkgId = teams[teamKey]?.package || 'A';
+  return POOL_PACKAGES[pkgId] || POOL_PACKAGES['A'];
+}
 
 function setSelectedDrawTeam(teamKey) {
   selectedDrawTeam = teamKey;
@@ -21,23 +51,62 @@ function shuffleArray(arr) {
   return a;
 }
 
-function getNextRandomUma() {
-  const combined = [
-    ...availablePot1.map(u => ({ name: u, pot: 1 })),
-    ...availablePot2.map(u => ({ name: u, pot: 2 })),
-    ...availablePot3.map(u => ({ name: u, pot: 3 }))
-  ];
+function getNextRandomUmaForTeam(teamKey) {
+  ensureRandomPackageAssignment();
+  const current = getTeamPotCounts(teamKey);
+  const target = getTeamPackageInfo(teamKey);
 
-  if (combined.length === 0) return null;
+  const need1 = Math.max(0, target.pot1 - current.pot1);
+  const need2 = Math.max(0, target.pot2 - current.pot2);
+  const need3 = Math.max(0, target.pot3 - current.pot3);
 
-  const randomIndex = Math.floor(Math.random() * combined.length);
-  const chosen = combined[randomIndex];
+  if (need1 + need2 + need3 === 0) {
+    return null;
+  }
 
-  if (chosen.pot === 1) availablePot1 = availablePot1.filter(u => u !== chosen.name);
-  if (chosen.pot === 2) availablePot2 = availablePot2.filter(u => u !== chosen.name);
-  if (chosen.pot === 3) availablePot3 = availablePot3.filter(u => u !== chosen.name);
+  const w1 = (need1 > 0 && availablePot1.length > 0) ? Math.sqrt(need1) : 0;
+  const w2 = (need2 > 0 && availablePot2.length > 0) ? Math.sqrt(need2) : 0;
+  const w3 = (need3 > 0 && availablePot3.length > 0) ? Math.sqrt(need3) : 0;
+  const totalWeight = w1 + w2 + w3;
 
-  return chosen;
+  let chosenPot = 1;
+
+  if (totalWeight > 0) {
+    const rand = Math.random() * totalWeight;
+    if (rand < w1) {
+      chosenPot = 1;
+    } else if (rand < w1 + w2) {
+      chosenPot = 2;
+    } else {
+      chosenPot = 3;
+    }
+  } else {
+    if (availablePot1.length > 0) chosenPot = 1;
+    else if (availablePot2.length > 0) chosenPot = 2;
+    else if (availablePot3.length > 0) chosenPot = 3;
+    else return null;
+  }
+
+  let chosenName = null;
+
+  if (chosenPot === 1 && availablePot1.length > 0) {
+    const idx = Math.floor(Math.random() * availablePot1.length);
+    chosenName = availablePot1.splice(idx, 1)[0];
+  } else if (chosenPot === 2 && availablePot2.length > 0) {
+    const idx = Math.floor(Math.random() * availablePot2.length);
+    chosenName = availablePot2.splice(idx, 1)[0];
+  } else if (chosenPot === 3 && availablePot3.length > 0) {
+    const idx = Math.floor(Math.random() * availablePot3.length);
+    chosenName = availablePot3.splice(idx, 1)[0];
+  }
+
+  if (!chosenName) return null;
+
+  return {
+    name: chosenName,
+    pot: chosenPot,
+    teamKey
+  };
 }
 
 function updateProgressUI() {
@@ -52,9 +121,16 @@ function updateProgressUI() {
   if (statusEl) statusEl.textContent = `Drawn: ${drawnCount}/${TOTAL_INITIAL_UMAS} • Remaining: ${remaining} Umas`;
   if (pctEl) pctEl.textContent = `${pct}%`;
   if (barEl) barEl.style.width = `${pct}%`;
+
+  const proceedBtn = document.getElementById('btn-proceed-to-draft');
+  if (proceedBtn) {
+    if (remaining === 0) proceedBtn.classList.remove('hidden');
+    else proceedBtn.classList.add('hidden');
+  }
 }
 
 function drawUmaForTeam(teamKey, animateCard = true, onComplete = null) {
+  ensureRandomPackageAssignment();
   const remainingTotal = availablePot1.length + availablePot2.length + availablePot3.length;
   if (remainingTotal === 0) {
     stopSequentialDraw();
@@ -62,12 +138,20 @@ function drawUmaForTeam(teamKey, animateCard = true, onComplete = null) {
     const gachaSub = document.getElementById('gacha-sub');
     if (gachaName) gachaName.textContent = "Draw Completed! 🎉";
     if (gachaSub) gachaSub.textContent = "All Umas have been distributed to the teams.";
+    document.getElementById('btn-proceed-to-draft')?.classList.remove('hidden');
     if (onComplete) onComplete();
     return false;
   }
 
-  const drawn = getNextRandomUma();
-  if (!drawn) return false;
+  if (teams[teamKey].umas.length >= 34) {
+    if (!isSequentialRunning) {
+      alert(`${teams[teamKey].name} Team has drawn all 34 Umas! Please select another team.`);
+    }
+    return false;
+  }
+
+  const drawn = getNextRandomUmaForTeam(teamKey);
+  if (!drawn || !drawn.name) return false;
 
   teams[teamKey].umas.push(drawn.name);
 
@@ -84,11 +168,12 @@ function drawUmaForTeam(teamKey, animateCard = true, onComplete = null) {
 
   if (gachaName) gachaName.textContent = drawn.name;
   if (gachaPotBadge) {
-    gachaPotBadge.textContent = `POT ${drawn.pot}`;
-    gachaPotBadge.className = `gacha-pot-tag pot-tag-${drawn.pot}`;
+    gachaPotBadge.textContent = "✨ UMA MUSUME";
+    gachaPotBadge.className = "gacha-pot-tag pot-tag-1";
   }
   if (gachaSub) {
-    gachaSub.textContent = `Added to ${teams[teamKey].name} Team! (Remaining: ${availablePot1.length + availablePot2.length + availablePot3.length})`;
+    const remaining = availablePot1.length + availablePot2.length + availablePot3.length;
+    gachaSub.textContent = `Added to ${teams[teamKey].name} Team! (${teams[teamKey].umas.length}/34 Umas • Remaining: ${remaining})`;
   }
 
   renderTeamUmaLists(teamKey);
@@ -105,6 +190,8 @@ function toggleLiveSequentialDraw() {
     alert("All Uma pools have already been drawn!");
     return;
   }
+
+  ensureRandomPackageAssignment();
 
   const mainBtn = document.getElementById('btn-live-draw-all');
   const speedBtn = document.getElementById('btn-speed-toggle');
@@ -136,11 +223,23 @@ function runSequentialLoop() {
     return;
   }
 
-  const currentTeam = TEAM_KEYS[currentRoundRobinIndex % 3];
-  setSelectedDrawTeam(currentTeam);
-  currentRoundRobinIndex++;
+  let foundTeam = null;
+  for (let i = 0; i < 3; i++) {
+    const candidateTeam = TEAM_KEYS[(currentRoundRobinIndex + i) % 3];
+    if (teams[candidateTeam].umas.length < 34) {
+      foundTeam = candidateTeam;
+      currentRoundRobinIndex = currentRoundRobinIndex + i + 1;
+      break;
+    }
+  }
 
-  const success = drawUmaForTeam(currentTeam, true);
+  if (!foundTeam) {
+    stopSequentialDraw();
+    return;
+  }
+
+  setSelectedDrawTeam(foundTeam);
+  const success = drawUmaForTeam(foundTeam, true);
   if (success && isSequentialRunning) {
     sequentialTimer = setTimeout(runSequentialLoop, sequentialSpeed);
   }
@@ -171,35 +270,12 @@ function cycleDrawSpeed() {
   if (speedLabel) speedLabel.textContent = speeds[nextIdx].label;
 }
 
-function instantDistributeAll() {
-  if (!confirm("Distribute all remaining Umas instantly across the 3 teams?")) return;
-  if (isSequentialRunning) stopSequentialDraw();
-
-  const p1 = shuffleArray(availablePot1);
-  const p2 = shuffleArray(availablePot2);
-  const p3 = shuffleArray(availablePot3);
-
-  p1.forEach((uma, i) => teams[TEAM_KEYS[i % 3]].umas.push(uma));
-  p2.forEach((uma, i) => teams[TEAM_KEYS[i % 3]].umas.push(uma));
-  p3.forEach((uma, i) => teams[TEAM_KEYS[i % 3]].umas.push(uma));
-
-  availablePot1 = [];
-  availablePot2 = [];
-  availablePot3 = [];
-
-  renderTeamUmaLists();
-  updateProgressUI();
-  saveStateToStorage();
-
-  const gachaName = document.getElementById('gacha-name');
-  const gachaSub = document.getElementById('gacha-sub');
-  if (gachaName) gachaName.textContent = "Pool Distributed ✅";
-  if (gachaSub) gachaSub.textContent = "All remaining Umas have been distributed evenly.";
-}
 
 function resetUmaPools() {
   if (!confirm("Are you sure you want to reset all team Uma pools?")) return;
   if (isSequentialRunning) stopSequentialDraw();
+
+  assignRandomPackages();
 
   teams.red.umas = [];
   teams.blue.umas = [];
@@ -230,9 +306,9 @@ function renderTeamUmaLists(autoscrollTeamKey = null) {
     const listEl = document.getElementById(`${t}-uma-list`);
     const countEl = document.getElementById(`${t}-uma-count`);
     if (!listEl || !countEl) return;
-    const list = teams[t].umas;
 
-    countEl.textContent = `${list.length} Umas`;
+    const list = teams[t].umas;
+    countEl.textContent = `${list.length}/34 Umas`;
 
     if (list.length === 0) {
       listEl.innerHTML = `<div style="text-align:center; padding:30px 10px; color:var(--text-faint); font-size:12px; font-weight:600;">No Umas drawn yet.</div>`;
@@ -240,12 +316,10 @@ function renderTeamUmaLists(autoscrollTeamKey = null) {
     }
 
     listEl.innerHTML = list.map((uma, idx) => {
-      const pot = UMA_POT_MAP[uma] || 1;
       const isLatest = idx === list.length - 1;
       return `
         <div class="uma-badge-item" style="${isLatest ? 'animation:fadeIn 0.25s ease; border-color:var(--team-' + t + '-border); background:#fffcf7;' : ''}">
           <span><b>${idx + 1}.</b> ${uma}</span>
-          <span class="gacha-pot-tag pot-tag-${pot}" style="font-size:9px; padding:2px 8px;">P${pot}</span>
         </div>
       `;
     }).join('');

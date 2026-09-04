@@ -1,6 +1,3 @@
-/* =============================================
-   1. CSS RESET & THEME TOKENS (WARM PARCHMENT)
-============================================= */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -20,7 +17,6 @@
   --text-faint: #9c8c76;
   --border-subtle: #e6d9c3;
 
-  /* RED - BLUE - YELLOW TEAM PALETTE */
   --team-red: #c92a2a;
   --team-red-light: #fae2e2;
   --team-red-border: #f4abab;
@@ -62,15 +58,11 @@ body {
   line-height: 1.5;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #e8ddc7; }
 ::-webkit-scrollbar-thumb { background: #c8baa0; border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: #a8987d; }
 
-/* =============================================
-   2. HEADER & NAVIGATION
-============================================= */
 header {
   background: rgba(246, 239, 224, 0.94);
   backdrop-filter: blur(16px);
@@ -164,9 +156,6 @@ nav.nav-tabs {
   box-shadow: 0 2px 8px rgba(80, 62, 38, 0.08);
 }
 
-/* =============================================
-   3. MAIN LAYOUT & COMMON CARDS
-============================================= */
 main {
   max-width: 1320px;
   margin: 0 auto;
@@ -213,7 +202,6 @@ main {
   gap: 8px;
 }
 
-/* BUTTONS */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -256,7 +244,6 @@ main {
   font-weight: 700;
 }
 
-/* FORMS & INPUTS */
 input[type="text"], textarea {
   width: 100%;
   background: #fbf7ee;
@@ -284,9 +271,6 @@ label.lbl {
   color: var(--text-muted);
 }
 
-/* =============================================
-   4. STAGE 1: DRAFT STYLES
-============================================= */
 .setup-box {
   max-width: 680px;
   margin: 0 auto;
@@ -392,7 +376,6 @@ label.lbl {
   border-color: #10b981;
 }
 
-/* Draft Pick Timer Widget */
 .draft-timer-badge {
   display: inline-flex;
   align-items: center;
@@ -558,9 +541,6 @@ label.lbl {
   font-size: 11px;
 }
 
-/* =============================================
-   5. STAGE 2: LIVE UMA DRAW STYLES
-============================================= */
 .uma-draw-hero {
   background: var(--card-bg);
   border: 1.5px solid var(--card-border);
