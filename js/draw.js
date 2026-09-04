@@ -250,7 +250,7 @@ function stopSequentialDraw() {
   clearTimeout(sequentialTimer);
   const mainBtn = document.getElementById('btn-live-draw-all');
   if (mainBtn) {
-    mainBtn.innerHTML = "⚡ Live Draw All (One by One)";
+    mainBtn.innerHTML = "⚡ Live Draw (Sequential)";
     mainBtn.style.background = "var(--team-yellow-gradient)";
   }
 }

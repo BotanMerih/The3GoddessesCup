@@ -39,9 +39,9 @@ POT_2.forEach(u => UMA_POT_MAP[u] = 2);
 POT_3.forEach(u => UMA_POT_MAP[u] = 3);
 
 const POOL_PACKAGES = {
-  A: { id: 'A', name: 'Paket A', pot1: 6, pot2: 16, pot3: 12, total: 34 },
-  B: { id: 'B', name: 'Paket B', pot1: 6, pot2: 16, pot3: 12, total: 34 },
-  C: { id: 'C', name: 'Paket C', pot1: 5, pot2: 17, pot3: 12, total: 34 }
+  A: { id: 'A', name: 'Package A', pot1: 6, pot2: 16, pot3: 12, total: 34 },
+  B: { id: 'B', name: 'Package B', pot1: 6, pot2: 16, pot3: 12, total: 34 },
+  C: { id: 'C', name: 'Package C', pot1: 5, pot2: 17, pot3: 12, total: 34 }
 };
 
 const TEAM_KEYS = ['red', 'blue', 'yellow'];

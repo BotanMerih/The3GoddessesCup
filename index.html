@@ -63,13 +63,13 @@
         <div class="draw-hero-actions">
           <button id="btn-live-draw-all" onclick="toggleLiveSequentialDraw()" class="btn btn-primary"
             style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
-            ⚡ Canlı Kura Çek (Sırayla)
+            ⚡ Live Draw (Sequential)
           </button>
           <button id="btn-speed-toggle" onclick="cycleDrawSpeed()" class="btn btn-outline btn-sm hidden">
-            ⏩ Hız: <span id="speed-label">Normal (1x)</span>
+            ⏩ Speed: <span id="speed-label">Normal (1x)</span>
           </button>
           <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);">
-            🔄 Kuraları Sıfırla
+            🔄 Reset Pools
           </button>
           <button id="btn-proceed-to-draft" onclick="switchTab(2)" class="btn btn-primary btn-sm hidden">
             Proceed to Player Draft ➔
@@ -81,7 +81,7 @@
         <div id="draw-progress-wrapper" style="max-width:600px; margin:0 auto 20px;">
           <div
             style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; font-family:'JetBrains Mono',monospace;">
-            <span id="draw-status-text">Kalan Havuz: 102 Uma</span>
+            <span id="draw-status-text">Remaining Pool: 102 Umas</span>
             <span id="draw-progress-percent">0%</span>
           </div>
           <div style="height:8px; background:#e8dcbe; border-radius:99px; overflow:hidden; border:1px solid #d5c49f;">
@@ -91,7 +91,7 @@
           </div>
         </div>
 
-        <div class="draw-stage-title">🎯 Aktif Çekim Yapan Takım:</div>
+        <div class="draw-stage-title">🎯 Active Drawing Team:</div>
 
         <div class="team-draw-selectors">
           <button id="selector-red" onclick="setSelectedDrawTeam('red')" class="team-draw-btn red active">
@@ -107,9 +107,9 @@
 
         <div class="gacha-card-wrapper">
           <div id="gacha-box" class="gacha-card">
-            <span id="gacha-pot-badge" class="gacha-pot-tag pot-tag-1">HAZIR</span>
-            <div id="gacha-name" class="gacha-uma-title">Uma Çek ✨</div>
-            <div id="gacha-sub" style="font-size:12px; color:var(--text-muted); font-weight:600;">Canlı çekim başlatmak için yukarıdaki butona tıklayın</div>
+            <span id="gacha-pot-badge" class="gacha-pot-tag pot-tag-1">READY</span>
+            <div id="gacha-name" class="gacha-uma-title">Draw Uma ✨</div>
+            <div id="gacha-sub" style="font-size:12px; color:var(--text-muted); font-weight:600;">Click the live draw button above to start drawing Umas in real-time</div>
           </div>
         </div>
       </div>
