@@ -1,6 +1,3 @@
-let matches = [];
-let bonusPoints = { red: 0, blue: 0, yellow: 0 };
-
 function calculateScoringStats() {
   const stats = {
     red: { points: bonusPoints.red || 0, wins: 0, seconds: 0, thirds: 0, fourths: 0, fifths: 0, totalRaces: 0 },
@@ -11,7 +8,7 @@ function calculateScoringStats() {
   const playerStats = {};
 
   TEAM_KEYS.forEach(t => {
-    const allMembers = [teams[t].cap, ...teams[t].players].filter(Boolean);
+    const allMembers = [teams[t]?.cap, ...(teams[t]?.players || [])].filter(Boolean);
     allMembers.forEach(p => {
       playerStats[p] = { name: p, team: t, points: 0, wins: 0, top5: 0, races: 0 };
     });
@@ -63,6 +60,13 @@ function adjustTeamPoints(teamKey, delta) {
   saveStateToStorage();
 }
 
+function parsePointInput(id, fallback) {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+  const val = parseInt(el.value, 10);
+  return isNaN(val) ? fallback : val;
+}
+
 function recordRaceResult(e) {
   if (e) e.preventDefault();
 
@@ -71,27 +75,27 @@ function recordRaceResult(e) {
   const firstTeam = document.getElementById('race-first-team')?.value;
   const firstPlayer = document.getElementById('race-first-player')?.value || "";
   const firstUma = document.getElementById('race-first-uma')?.value || "";
-  const firstPts = parseInt(document.getElementById('race-first-pts')?.value, 10) || 10;
+  const firstPts = parsePointInput('race-first-pts', 10);
 
   const secondTeam = document.getElementById('race-second-team')?.value;
   const secondPlayer = document.getElementById('race-second-player')?.value || "";
   const secondUma = document.getElementById('race-second-uma')?.value || "";
-  const secondPts = parseInt(document.getElementById('race-second-pts')?.value, 10) || 7;
+  const secondPts = parsePointInput('race-second-pts', 7);
 
   const thirdTeam = document.getElementById('race-third-team')?.value;
   const thirdPlayer = document.getElementById('race-third-player')?.value || "";
   const thirdUma = document.getElementById('race-third-uma')?.value || "";
-  const thirdPts = parseInt(document.getElementById('race-third-pts')?.value, 10) || 5;
+  const thirdPts = parsePointInput('race-third-pts', 5);
 
   const fourthTeam = document.getElementById('race-fourth-team')?.value;
   const fourthPlayer = document.getElementById('race-fourth-player')?.value || "";
   const fourthUma = document.getElementById('race-fourth-uma')?.value || "";
-  const fourthPts = parseInt(document.getElementById('race-fourth-pts')?.value, 10) || 3;
+  const fourthPts = parsePointInput('race-fourth-pts', 3);
 
   const fifthTeam = document.getElementById('race-fifth-team')?.value;
   const fifthPlayer = document.getElementById('race-fifth-player')?.value || "";
   const fifthUma = document.getElementById('race-fifth-uma')?.value || "";
-  const fifthPts = parseInt(document.getElementById('race-fifth-pts')?.value, 10) || 1;
+  const fifthPts = parsePointInput('race-fifth-pts', 1);
 
   if (!firstTeam || !secondTeam || !thirdTeam || !fourthTeam || !fifthTeam) {
     alert("Please select the teams for all 1st to 5th placements.");
@@ -204,12 +208,12 @@ function renderScoringTab() {
   if (leaderboardGrid) {
     leaderboardGrid.innerHTML = sortedTeams.map((t, idx) => {
       const st = teamStats[t];
-      const capName = teams[t].cap || `Captain ${teams[t].name}`;
+      const capName = teams[t]?.cap || `Captain ${teams[t]?.name || t}`;
       return `
         <div class="score-team-card ${t} ${rankClasses[idx]}">
           <div class="score-card-header">
             <div class="score-rank-badge">${medals[idx]} ${rankLabels[idx]}</div>
-            <span class="score-team-name ${t}">● ${teams[t].name} Team</span>
+            <span class="score-team-name ${t}">● ${teams[t]?.name || t} Team</span>
           </div>
 
           <div class="score-main-points">
@@ -300,35 +304,35 @@ function renderScoringTab() {
 
           <div class="match-placements-grid-5">
             <div class="match-placement-item first">
-              <div class="placement-row-badge">🥇 1st (+${m.first?.pts || 10} pts)</div>
+              <div class="placement-row-badge">🥇 1st (+${m.first?.pts !== undefined ? m.first.pts : 10} pts)</div>
               <div class="podium-team ${m.first?.team}">● ${teams[m.first?.team]?.name || m.first?.team}</div>
               <div class="podium-player">${m.first?.player ? '👤 ' + m.first.player : 'Unspecified'}</div>
               <div class="podium-uma">${m.first?.uma ? '🏇 ' + m.first.uma : ''}</div>
             </div>
 
             <div class="match-placement-item second">
-              <div class="placement-row-badge">🥈 2nd (+${m.second?.pts || 7} pts)</div>
+              <div class="placement-row-badge">🥈 2nd (+${m.second?.pts !== undefined ? m.second.pts : 7} pts)</div>
               <div class="podium-team ${m.second?.team}">● ${teams[m.second?.team]?.name || m.second?.team}</div>
               <div class="podium-player">${m.second?.player ? '👤 ' + m.second.player : 'Unspecified'}</div>
               <div class="podium-uma">${m.second?.uma ? '🏇 ' + m.second.uma : ''}</div>
             </div>
 
             <div class="match-placement-item third">
-              <div class="placement-row-badge">🥉 3rd (+${m.third?.pts || 5} pts)</div>
+              <div class="placement-row-badge">🥉 3rd (+${m.third?.pts !== undefined ? m.third.pts : 5} pts)</div>
               <div class="podium-team ${m.third?.team}">● ${teams[m.third?.team]?.name || m.third?.team}</div>
               <div class="podium-player">${m.third?.player ? '👤 ' + m.third.player : 'Unspecified'}</div>
               <div class="podium-uma">${m.third?.uma ? '🏇 ' + m.third.uma : ''}</div>
             </div>
 
             <div class="match-placement-item fourth">
-              <div class="placement-row-badge">🎖️ 4th (+${m.fourth?.pts || 3} pts)</div>
+              <div class="placement-row-badge">🎖️ 4th (+${m.fourth?.pts !== undefined ? m.fourth.pts : 3} pts)</div>
               <div class="podium-team ${m.fourth?.team}">● ${teams[m.fourth?.team]?.name || m.fourth?.team}</div>
               <div class="podium-player">${m.fourth?.player ? '👤 ' + m.fourth.player : 'Unspecified'}</div>
               <div class="podium-uma">${m.fourth?.uma ? '🏇 ' + m.fourth.uma : ''}</div>
             </div>
 
             <div class="match-placement-item fifth">
-              <div class="placement-row-badge">🎖️ 5th (+${m.fifth?.pts || 1} pts)</div>
+              <div class="placement-row-badge">🎖️ 5th (+${m.fifth?.pts !== undefined ? m.fifth.pts : 1} pts)</div>
               <div class="podium-team ${m.fifth?.team}">● ${teams[m.fifth?.team]?.name || m.fifth?.team}</div>
               <div class="podium-player">${m.fifth?.player ? '👤 ' + m.fifth.player : 'Unspecified'}</div>
               <div class="podium-uma">${m.fifth?.uma ? '🏇 ' + m.fifth.uma : ''}</div>

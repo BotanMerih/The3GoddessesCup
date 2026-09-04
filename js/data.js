@@ -74,6 +74,9 @@ let snakeDraftOrder = [];
 let currentPickIndex = 0;
 let pickHistory = [];
 
+let matches = [];
+let bonusPoints = { red: 0, blue: 0, yellow: 0 };
+
 let selectedDrawTeam = 'red';
 let currentTab = 1;
 
