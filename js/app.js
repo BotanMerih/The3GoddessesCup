@@ -46,10 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!hasSavedData) {
     if (inputEl) {
-      inputEl.value = Array.from({length: 24}, (_, i) => `Player ${i + 1}`).join('\n');
+      inputEl.value = DEFAULT_PLAYERS.join('\n');
     }
     updatePlayerInputHint();
   } else {
+    if (inputEl && !inputEl.value.trim()) {
+      inputEl.value = DEFAULT_PLAYERS.join('\n');
+    }
     updatePlayerInputHint();
   }
 

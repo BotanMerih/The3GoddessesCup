@@ -72,13 +72,49 @@ function toggleDraftTimer() {
   }
 }
 
+function populateCaptainSelectors() {
+  const inputEl = document.getElementById('player-bulk-input');
+  if (!inputEl) return;
+  const players = inputEl.value.trim().split('\n').map(p => p.trim()).filter(p => p.length > 0);
+
+  TEAM_KEYS.forEach((t, idx) => {
+    const select = document.getElementById(`cap-${t}`);
+    if (!select) return;
+    const currentVal = teams[t]?.cap || select.value || (players[idx] || `Captain ${teams[t]?.name || t}`);
+
+    let html = `<option value="Captain ${teams[t]?.name || t}">👑 Captain ${teams[t]?.name || t} (Custom)</option>`;
+    players.forEach(p => {
+      html += `<option value="${p}">${p}</option>`;
+    });
+
+    select.innerHTML = html;
+    if (players.includes(currentVal) || currentVal === `Captain ${teams[t]?.name || t}`) {
+      select.value = currentVal;
+    } else if (players[idx]) {
+      select.value = players[idx];
+      teams[t].cap = players[idx];
+    }
+  });
+
+  updateCaptainSubtitles();
+}
+
 function updatePlayerInputHint() {
   const inputEl = document.getElementById('player-bulk-input');
   if (!inputEl) return;
   const players = inputEl.value.trim().split('\n').map(p => p.trim()).filter(p => p.length > 0);
-  const count = players.length;
-  const slotsPerTeam = Math.ceil(count / 3);
-  document.getElementById('player-count-hint').textContent = `${count} players detected (${slotsPerTeam} player slots + 1 Captain = ${slotsPerTeam + 1} per team).`;
+  
+  populateCaptainSelectors();
+
+  const capRed = document.getElementById('cap-red')?.value || teams.red.cap;
+  const capBlue = document.getElementById('cap-blue')?.value || teams.blue.cap;
+  const capYellow = document.getElementById('cap-yellow')?.value || teams.yellow.cap;
+  const selectedCaps = [capRed, capBlue, capYellow].filter(Boolean);
+
+  const draftable = players.filter(p => !selectedCaps.includes(p));
+  const slotsPerTeam = Math.ceil(draftable.length / 3);
+
+  document.getElementById('player-count-hint').textContent = `${players.length} total players detected • 3 Captains assigned • ${draftable.length} players in Snake Draft (${slotsPerTeam} slots per team).`;
   saveStateToStorage();
 }
 
@@ -99,14 +135,25 @@ function startSnakeDraft() {
   const text = document.getElementById('player-bulk-input').value.trim();
   const players = text.split('\n').map(p => p.trim()).filter(p => p.length > 0);
 
-  if (players.length < 3) {
-    alert(`Please enter at least 3 players. Current count: ${players.length}`);
+  const capRed = document.getElementById('cap-red')?.value.trim() || "Captain Red";
+  const capBlue = document.getElementById('cap-blue')?.value.trim() || "Captain Blue";
+  const capYellow = document.getElementById('cap-yellow')?.value.trim() || "Captain Yellow";
+
+  if (new Set([capRed, capBlue, capYellow]).size < 3) {
+    alert("Please select 3 different captains for Red, Blue, and Yellow teams.");
     return;
   }
 
-  teams.red.cap    = document.getElementById('cap-red').value.trim()    || "Captain Red";
-  teams.blue.cap   = document.getElementById('cap-blue').value.trim()   || "Captain Blue";
-  teams.yellow.cap = document.getElementById('cap-yellow').value.trim() || "Captain Yellow";
+  const draftablePlayers = players.filter(p => p !== capRed && p !== capBlue && p !== capYellow);
+
+  if (draftablePlayers.length < 3) {
+    alert(`Please enter at least 3 draftable players. Current draftable count: ${draftablePlayers.length}`);
+    return;
+  }
+
+  teams.red.cap = capRed;
+  teams.blue.cap = capBlue;
+  teams.yellow.cap = capYellow;
 
   teams.red.players = [];
   teams.blue.players = [];
@@ -118,8 +165,8 @@ function startSnakeDraft() {
   document.getElementById('blue-cap-sub').textContent = `Captain: ${teams.blue.cap}`;
   document.getElementById('yellow-cap-sub').textContent = `Captain: ${teams.yellow.cap}`;
 
-  playerPool = [...players];
-  snakeDraftOrder = generateSnakeOrder(players.length);
+  playerPool = [...draftablePlayers];
+  snakeDraftOrder = generateSnakeOrder(draftablePlayers.length);
   currentPickIndex = 0;
   pickHistory = [];
 
@@ -137,17 +184,18 @@ function renderSnakeDraftBoard() {
   TEAM_KEYS.forEach(t => {
     const container = document.getElementById(`team-list-${t}`);
     const totalTeamSlots = snakeDraftOrder.filter(item => item.team === t).length;
-    document.getElementById(`${t}-roster-count`).textContent = `${teams[t].players.length + 1}/${totalTeamSlots + 1}`;
+    const pCount = teams[t]?.players?.length || 0;
+    document.getElementById(`${t}-roster-count`).textContent = `${pCount + 1}/${totalTeamSlots + 1}`;
 
     let html = `
       <div class="slot-item captain">
-        <span>👑 ${teams[t].cap}</span>
+        <span>👑 ${teams[t]?.cap || 'Captain'}</span>
         <span style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">CAPTAIN</span>
       </div>
     `;
 
     for (let i = 0; i < totalTeamSlots; i++) {
-      const p = teams[t].players[i];
+      const p = teams[t]?.players?.[i];
       if (p) {
         html += `
           <div class="slot-item filled">
@@ -173,7 +221,7 @@ function renderSnakeDraftBoard() {
     document.getElementById('current-pick-text').textContent = `${currentPickIndex + 1} / ${snakeDraftOrder.length}`;
 
     const badge = document.getElementById('active-turn-badge');
-    badge.textContent = `Turn: ${teams[cur.team].name.toUpperCase()} TEAM`;
+    badge.textContent = `Turn: ${(teams[cur.team]?.name || cur.team).toUpperCase()} TEAM`;
     badge.className = `turn-pill ${cur.team}`;
 
     TEAM_KEYS.forEach(t => {

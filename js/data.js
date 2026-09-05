@@ -33,6 +33,45 @@ const POT_3 = [
   "Tokai Teio (Anime)", "King Halo (Cheerleader)", "Mihono Bourbon (Valentine)"
 ];
 
+const DEFAULT_PLAYERS = [
+  "EricOfficially",
+  "AndreaDoria",
+  "Tiddledoo",
+  "ToriGoo",
+  "Zow",
+  "Fear and Potato",
+  "WiseOakTree",
+  "Mythlols",
+  "Ricka",
+  "Fido",
+  "Soul",
+  "soren",
+  "Botan",
+  "Suzune",
+  "Cranberri",
+  "Shizuku",
+  "Shirakami",
+  "Alkopolygami",
+  "yuyu",
+  "Asahina",
+  "aslan",
+  "Honk",
+  "Isaac",
+  "Nes",
+  "Casual",
+  "Kaiden",
+  "Adocado",
+  "Sam",
+  "CYN☆",
+  "Sera",
+  "OmniPOllO",
+  "Zera",
+  "Yumchala",
+  "NutCracker",
+  "UmaOujiXII",
+  "Isa"
+];
+
 const UMA_POT_MAP = {};
 POT_1.forEach(u => UMA_POT_MAP[u] = 1);
 POT_2.forEach(u => UMA_POT_MAP[u] = 2);

@@ -179,15 +179,21 @@
           <div class="captains-grid">
             <div class="captain-input-card red">
               <label class="lbl" style="color:var(--team-red)">🔴 Red Captain</label>
-              <input id="cap-red" type="text" value="Captain Red" oninput="updateCaptainsAndSave()">
+              <select id="cap-red" onchange="updateCaptainsAndSave()" class="score-select" style="font-weight:700; background:#fffcf7;">
+                <option value="Captain Red">👑 Captain Red</option>
+              </select>
             </div>
             <div class="captain-input-card blue">
               <label class="lbl" style="color:var(--team-blue)">🔵 Blue Captain</label>
-              <input id="cap-blue" type="text" value="Captain Blue" oninput="updateCaptainsAndSave()">
+              <select id="cap-blue" onchange="updateCaptainsAndSave()" class="score-select" style="font-weight:700; background:#fffcf7;">
+                <option value="Captain Blue">👑 Captain Blue</option>
+              </select>
             </div>
             <div class="captain-input-card yellow">
               <label class="lbl" style="color:var(--team-yellow)">🟡 Yellow Captain</label>
-              <input id="cap-yellow" type="text" value="Captain Yellow" oninput="updateCaptainsAndSave()">
+              <select id="cap-yellow" onchange="updateCaptainsAndSave()" class="score-select" style="font-weight:700; background:#fffcf7;">
+                <option value="Captain Yellow">👑 Captain Yellow</option>
+              </select>
             </div>
           </div>
 
