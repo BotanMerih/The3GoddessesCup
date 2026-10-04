@@ -52,265 +52,450 @@
 
       <nav class="nav-tabs">
         <button id="nav-btn-1" class="nav-btn active" onclick="switchTab(1)">
-          <span>🎴</span> 1. Team Uma Draw
+          <span>👥</span> 1. Team Rosters
         </button>
         <button id="nav-btn-2" class="nav-btn" onclick="switchTab(2)">
-          <span>👥</span> 2. Player Snake Draft
+          <span>🏟️</span> 2. Track Pick & Ban
         </button>
         <button id="nav-btn-3" class="nav-btn" onclick="switchTab(3)">
-          <span>🏆</span> 3. Tournament Scoring
+          <span>🛍️</span> 3. Uma Market
+        </button>
+        <button id="nav-btn-4" class="nav-btn" onclick="switchTab(4)">
+          <span>🏆</span> 4. Tournament Scoring
         </button>
       </nav>
     </div>
   </header>
 
   <main>
+
+    
     <section id="tab-1" class="tab-content active">
 
-      <div class="uma-draw-hero">
-        <div class="draw-hero-info">
-          <h2>🎴 3 Goddesses Live Uma Draw Center</h2>
-          <p>Draw all Umas one by one in real-time across teams.</p>
+      
+      <div class="fixed-teams-hero">
+        <div class="fixed-teams-hero-info">
+          <h2>👥 Stage 1: Team Rosters & Players</h2>
+          <p>Build the rosters for the 3 competing teams. Add players individually or use <b>📝 Bulk Edit</b> to paste your full roster list.</p>
         </div>
-        <div class="draw-hero-actions">
-          <button id="btn-live-draw-all" onclick="toggleLiveSequentialDraw()" class="btn btn-primary"
-            style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
-            ⚡ Live Draw (Sequential)
+        <div class="fixed-teams-hero-actions">
+          <span id="total-players-badge" class="total-players-pill">0 Players Total</span>
+          <button onclick="clearAllTeamRosters()" class="btn btn-outline" style="color:var(--team-red);" title="Clear all team rosters">
+            🗑️ Clear Rosters
           </button>
-          <button id="btn-speed-toggle" onclick="cycleDrawSpeed()" class="btn btn-outline btn-sm hidden">
-            ⏩ Speed: <span id="speed-label">Normal (1x)</span>
-          </button>
-          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);">
-            🔄 Reset Pools
-          </button>
-          <button id="btn-proceed-to-draft" onclick="switchTab(2)" class="btn btn-primary btn-sm hidden">
-            Proceed to Player Draft ➔
+          <button id="btn-proceed-to-tracks" onclick="switchTab(2)" class="btn btn-primary" style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
+            Proceed to Track Pick & Ban (Tab 2) ➔
           </button>
         </div>
       </div>
 
-      <div class="draw-stage-container">
-        <div id="draw-progress-wrapper" style="max-width:600px; margin:0 auto 20px;">
-          <div
-            style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; font-family:'JetBrains Mono',monospace;">
-            <span id="draw-status-text">Remaining Pool: 102 Umas</span>
-            <span id="draw-progress-percent">0%</span>
+      
+      <div class="fixed-teams-grid">
+
+        
+        <div id="fixed-team-card-red" class="fixed-team-card red">
+          <div class="fixed-team-header red">
+            <div class="fixed-team-title">
+              <span class="team-tag red">🔴 Red Team</span>
+              <span id="fixed-team-count-red" class="pill-count">0 Players</span>
+            </div>
+            <button id="btn-bulk-toggle-red" onclick="toggleTeamBulkEdit('red')" class="btn-bulk-toggle" title="Toggle bulk edit textbox">
+              📝 Bulk Edit
+            </button>
           </div>
-          <div style="height:8px; background:#e8dcbe; border-radius:99px; overflow:hidden; border:1px solid #d5c49f;">
-            <div id="draw-progress-bar"
-              style="height:100%; width:0%; background:linear-gradient(90deg, #c92a2a, #1d4ed8, #f59e0b); transition:width 0.15s ease;">
+
+          <div class="fixed-team-body">
+            
+            <div class="captain-select-row">
+              <label class="captain-lbl">👑 Team Captain:</label>
+              <input type="text" id="fixed-team-cap-red" oninput="updateTeamCaptain('red', this.value)" class="captain-input" placeholder="Enter captain name...">
+            </div>
+
+            
+            <div id="fixed-team-list-red" class="fixed-players-scroll"></div>
+
+            
+            <div id="fixed-team-bulk-red" class="fixed-bulk-wrap hidden">
+              <label class="lbl">Enter one player per line:</label>
+              <textarea id="fixed-team-textarea-red" rows="10" class="bulk-textarea"></textarea>
+              <button onclick="saveTeamRosterBulk('red')" class="btn btn-primary btn-sm" style="width:100%; margin-top:8px;">
+                💾 Save Roster
+              </button>
+            </div>
+
+            
+            <div class="add-player-row">
+              <input type="text" id="add-player-input-red" placeholder="Add new player..." onkeydown="if(event.key==='Enter') addPlayerToTeam('red')" class="add-player-input">
+              <button onclick="addPlayerToTeam('red')" class="btn-add-player red" title="Add player to roster">
+                + Ekle
+              </button>
             </div>
           </div>
         </div>
 
-        <div class="draw-stage-title">🎯 Active Drawing Team:</div>
+        
+        <div id="fixed-team-card-blue" class="fixed-team-card blue">
+          <div class="fixed-team-header blue">
+            <div class="fixed-team-title">
+              <span class="team-tag blue">🔵 Blue Team</span>
+              <span id="fixed-team-count-blue" class="pill-count">0 Players</span>
+            </div>
+            <button id="btn-bulk-toggle-blue" onclick="toggleTeamBulkEdit('blue')" class="btn-bulk-toggle" title="Toggle bulk edit textbox">
+              📝 Bulk Edit
+            </button>
+          </div>
 
-        <div class="team-draw-selectors">
-          <button id="selector-red" onclick="setSelectedDrawTeam('red')" class="team-draw-btn red active">
+          <div class="fixed-team-body">
+            
+            <div class="captain-select-row">
+              <label class="captain-lbl">👑 Team Captain:</label>
+              <input type="text" id="fixed-team-cap-blue" oninput="updateTeamCaptain('blue', this.value)" class="captain-input" placeholder="Enter captain name...">
+            </div>
+
+            
+            <div id="fixed-team-list-blue" class="fixed-players-scroll"></div>
+
+            
+            <div id="fixed-team-bulk-blue" class="fixed-bulk-wrap hidden">
+              <label class="lbl">Enter one player per line:</label>
+              <textarea id="fixed-team-textarea-blue" rows="10" class="bulk-textarea"></textarea>
+              <button onclick="saveTeamRosterBulk('blue')" class="btn btn-primary btn-sm" style="width:100%; margin-top:8px;">
+                💾 Save Roster
+              </button>
+            </div>
+
+            
+            <div class="add-player-row">
+              <input type="text" id="add-player-input-blue" placeholder="Add new player..." onkeydown="if(event.key==='Enter') addPlayerToTeam('blue')" class="add-player-input">
+              <button onclick="addPlayerToTeam('blue')" class="btn-add-player blue" title="Add player to roster">
+                + Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="fixed-team-card-yellow" class="fixed-team-card yellow">
+          <div class="fixed-team-header yellow">
+            <div class="fixed-team-title">
+              <span class="team-tag yellow">🟡 Yellow Team</span>
+              <span id="fixed-team-count-yellow" class="pill-count">0 Players</span>
+            </div>
+            <button id="btn-bulk-toggle-yellow" onclick="toggleTeamBulkEdit('yellow')" class="btn-bulk-toggle" title="Toggle bulk edit textbox">
+              📝 Bulk Edit
+            </button>
+          </div>
+
+          <div class="fixed-team-body">
+            
+            <div class="captain-select-row">
+              <label class="captain-lbl">👑 Team Captain:</label>
+              <input type="text" id="fixed-team-cap-yellow" oninput="updateTeamCaptain('yellow', this.value)" class="captain-input" placeholder="Enter captain name...">
+            </div>
+
+            
+            <div id="fixed-team-list-yellow" class="fixed-players-scroll"></div>
+
+            
+            <div id="fixed-team-bulk-yellow" class="fixed-bulk-wrap hidden">
+              <label class="lbl">Enter one player per line:</label>
+              <textarea id="fixed-team-textarea-yellow" rows="10" class="bulk-textarea"></textarea>
+              <button onclick="saveTeamRosterBulk('yellow')" class="btn btn-primary btn-sm" style="width:100%; margin-top:8px;">
+                💾 Save Roster
+              </button>
+            </div>
+
+            
+            <div class="add-player-row">
+              <input type="text" id="add-player-input-yellow" placeholder="Add new player..." onkeydown="if(event.key==='Enter') addPlayerToTeam('yellow')" class="add-player-input">
+              <button onclick="addPlayerToTeam('yellow')" class="btn-add-player yellow" title="Add player to roster">
+                + Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    
+    <section id="tab-2" class="tab-content">
+
+      
+      <div class="track-hero">
+        <div class="track-hero-info">
+          <h2>🏟️ Stage 2: Track Pick & Ban</h2>
+          <p>Teams ban and select race tracks among the <b>5 official tournament tracks</b>. Selected tracks are scheduled into the race calendar.</p>
+        </div>
+        <div class="track-hero-actions">
+          <button onclick="undoTrackAction()" class="btn btn-outline" title="Undo last track pick or ban">
+            ↩️ Undo Last Action
+          </button>
+          <button onclick="resetAllTracks()" class="btn btn-outline" style="color:var(--team-red);" title="Reset all track selections">
+            🔄 Reset All Tracks
+          </button>
+          <button id="btn-proceed-to-market" onclick="switchTab(3)" class="btn btn-primary" style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
+            Proceed to Uma Market (Tab 3) ➔
+          </button>
+        </div>
+      </div>
+
+      
+      <div class="track-team-selector-card">
+        <div class="track-selector-title">
+          <span>🎯 Active Decider:</span>
+          <span id="track-active-team-hint" class="track-hint-pill">Active: <b style="color:var(--team-red)">🔴 Red Team</b></span>
+        </div>
+        <div class="track-team-buttons">
+          <button id="track-team-btn-red" onclick="setTrackActiveTeam('red')" class="track-team-btn red active">
             🔴 Red Team
           </button>
-          <button id="selector-blue" onclick="setSelectedDrawTeam('blue')" class="team-draw-btn blue">
+          <button id="track-team-btn-blue" onclick="setTrackActiveTeam('blue')" class="track-team-btn blue">
             🔵 Blue Team
           </button>
-          <button id="selector-yellow" onclick="setSelectedDrawTeam('yellow')" class="team-draw-btn yellow">
+          <button id="track-team-btn-yellow" onclick="setTrackActiveTeam('yellow')" class="track-team-btn yellow">
             🟡 Yellow Team
           </button>
         </div>
-
-        <div class="gacha-card-wrapper">
-          <div id="gacha-box" class="gacha-card">
-            <span id="gacha-pot-badge" class="gacha-pot-tag pot-tag-1">READY</span>
-            <div id="gacha-name" class="gacha-uma-title">Draw Uma ✨</div>
-            <div id="gacha-sub" style="font-size:12px; color:var(--text-muted); font-weight:600;">Click the live draw button above to start drawing Umas in real-time</div>
-          </div>
-        </div>
       </div>
 
-      <div class="teams-uma-display">
-
-        <div class="team-uma-box red">
-          <div class="team-uma-box-header">
-            <div>
-              <span class="team-tag red">🔴 Red Team Umas</span>
-              <div id="red-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
-                Captain: Captain Red</div>
-            </div>
-            <span id="red-uma-count" class="pill-count">0/34 Umas</span>
+      
+      <div class="track-layout-grid">
+        
+        <div class="track-catalog-panel">
+          <div class="track-panel-header">
+            <span class="card-title">🏁 Official Tournament Tracks (5 Tracks)</span>
+            <span class="track-rules-hint">Use <b>🚫 Ban</b> to veto a track or <b>✅ Pick</b> to schedule it for a race.</span>
           </div>
-          <div id="red-uma-list" class="team-uma-scroll"></div>
+
+          <div id="track-cards-grid" class="track-cards-grid">
+            
+          </div>
         </div>
 
-        <div class="team-uma-box blue">
-          <div class="team-uma-box-header">
-            <div>
-              <span class="team-tag blue">🔵 Blue Team Umas</span>
-              <div id="blue-cap-sub" style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">
-                Captain: Captain Blue</div>
+        
+        <div class="track-summary-panel">
+          
+          <div class="track-summary-card picked">
+            <div class="track-summary-header picked">
+              <span class="card-title" style="color:#059669;">🏁 Picked / Scheduled Tracks</span>
             </div>
-            <span id="blue-uma-count" class="pill-count">0/34 Umas</span>
-          </div>
-          <div id="blue-uma-list" class="team-uma-scroll"></div>
-        </div>
-
-        <div class="team-uma-box yellow">
-          <div class="team-uma-box-header">
-            <div>
-              <span class="team-tag yellow">🟡 Yellow Team Umas</span>
-              <div id="yellow-cap-sub"
-                style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px;">Captain: Captain Yellow</div>
+            <div id="picked-tracks-list" class="picked-tracks-list">
+              
             </div>
-            <span id="yellow-uma-count" class="pill-count">0/34 Umas</span>
           </div>
-          <div id="yellow-uma-list" class="team-uma-scroll"></div>
-        </div>
 
+          
+          <div class="track-summary-card banned">
+            <div class="track-summary-header banned">
+              <span class="card-title" style="color:var(--team-red);">🚫 Banned Tracks</span>
+            </div>
+            <div id="banned-tracks-list" class="banned-tracks-list">
+              
+            </div>
+          </div>
+        </div>
       </div>
 
     </section>
 
-    <section id="tab-2" class="tab-content">
+    
+    <section id="tab-3" class="tab-content">
 
-      <div id="setup-view" class="setup-box">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">⚙️ Tournament Setup & Team Captains</span>
-          </div>
-
-          <div class="captains-grid">
-            <div class="captain-input-card red">
-              <label class="lbl" style="color:var(--team-red)">🔴 Red Captain</label>
-              <select id="cap-red" onchange="updateCaptainsAndSave()" class="score-select" style="font-weight:700; background:#fffcf7;">
-                <option value="Captain Red">👑 Captain Red</option>
-              </select>
-            </div>
-            <div class="captain-input-card blue">
-              <label class="lbl" style="color:var(--team-blue)">🔵 Blue Captain</label>
-              <select id="cap-blue" onchange="updateCaptainsAndSave()" class="score-select" style="font-weight:700; background:#fffcf7;">
-                <option value="Captain Blue">👑 Captain Blue</option>
-              </select>
-            </div>
-            <div class="captain-input-card yellow">
-              <label class="lbl" style="color:var(--team-yellow)">🟡 Yellow Captain</label>
-              <select id="cap-yellow" onchange="updateCaptainsAndSave()" class="score-select" style="font-weight:700; background:#fffcf7;">
-                <option value="Captain Yellow">👑 Captain Yellow</option>
-              </select>
-            </div>
-          </div>
-
-          <div
-            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; padding:12px 14px; background:#f4ecda; border:1px solid #d4c4a5; border-radius:var(--radius-sm);">
-            <div>
-              <span style="font-size:12px; font-weight:800; color:var(--text-main); display:block;">⏱️ Pick Timer (Turn
-                Duration):</span>
-              <span style="font-size:11px; color:var(--text-muted);">Countdown per player pick during the snake
-                draft</span>
-            </div>
-            <select id="draft-timer-select" onchange="updateDraftTimerSetting()"
-              style="background:#fffcf7; border:1.5px solid #d4c4a7; border-radius:var(--radius-sm); padding:6px 12px; font-family:inherit; font-size:12px; font-weight:700; color:var(--text-main); outline:none;">
-              <option value="30">30 Seconds</option>
-              <option value="45">45 Seconds</option>
-              <option value="60" selected>60 Seconds (Default)</option>
-              <option value="90">90 Seconds</option>
-              <option value="120">120 Seconds</option>
-              <option value="0">Off (No Timer)</option>
-            </select>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <label class="lbl">📋 Players List (One player per line):</label>
-            <textarea id="player-bulk-input" rows="8"
-              style="font-family:'JetBrains Mono',monospace; resize:vertical;"></textarea>
-            <div id="player-count-hint"
-              style="font-size:12px; color:var(--text-muted); margin-top:6px; font-weight:600;">24 players detected.
-            </div>
-          </div>
-
-          <button onclick="startSnakeDraft()" class="btn btn-primary" style="width: 100%; padding: 12px;">
-            🚀 Start Snake Draft
+      
+      <div class="uma-market-hero">
+        <div class="market-hero-info">
+          <h2>🛍️ Stage 3: 3 Goddesses Uma Market</h2>
+          <p>Each team has a <b>120 🪙 budget</b> to draft their racing Umas. Cost: <b>10 🪙 per Uma</b> (Maximum 12 Umas per team).</p>
+        </div>
+        <div class="market-hero-actions">
+          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);" title="Reset all selections and refund 120 coins">
+            🔄 Reset Selections
+          </button>
+          <button id="btn-proceed-to-scoring" onclick="switchTab(4)" class="btn btn-primary" style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
+            Proceed to Tournament Scoring (Tab 4) ➔
           </button>
         </div>
       </div>
 
-      <div id="draft-live-view" class="hidden">
-        <div class="draft-status-bar">
-          <div class="draft-stats">
-            <div class="stat-badge">
-              <span class="stat-lbl">Round</span>
-              <span id="current-round-text" class="stat-val">1 / 8</span>
-            </div>
-            <div class="stat-badge">
-              <span class="stat-lbl">Total Picks</span>
-              <span id="current-pick-text" class="stat-val">1 / 24</span>
-            </div>
-            <div id="active-turn-badge" class="turn-pill red">
-              Turn: Red Team
-            </div>
-            <div id="draft-timer-container" class="draft-timer-badge">
-              <span>⏱️</span>
-              <span id="draft-timer-val">60s</span>
-            </div>
+      
+      <div id="snake-draft-ticker-card" class="snake-draft-ticker-card">
+        <div class="draft-live-bar">
+          <div class="draft-live-left">
+            <span class="snake-badge">🐍 Snake Draft</span>
+            <span id="draft-round-badge" class="draft-round-badge">Round 1 / 12</span>
+            <span id="draft-pick-badge" class="draft-pick-badge">Pick 1 / 36</span>
           </div>
 
-          <div style="display:flex; align-items:center; gap:8px;">
-            <button id="btn-proceed-scoring" onclick="switchTab(3)" class="btn btn-primary btn-sm hidden"
-              style="background:var(--team-yellow-gradient); color:#fff; border:none;">
-              🏆 Proceed to Scoring ➔
+          <div id="draft-on-clock-indicator" class="draft-on-clock red">
+            <span class="clock-label">ON THE CLOCK:</span>
+            <b id="draft-current-team-name">🔴 Red Team</b>
+          </div>
+
+          <div class="draft-live-actions">
+            <button id="btn-undo-pick" onclick="undoLastDraftPick()" class="btn btn-outline btn-sm" title="Undo the previous pick">
+              ↩️ Undo Pick
             </button>
-            <button id="btn-timer-pause" onclick="toggleDraftTimer()" class="btn btn-outline btn-sm"
-              title="Pause / Resume Turn Timer">
-              ⏸️ Pause
-            </button>
-            <button onclick="undoPick()" class="btn btn-outline btn-sm">
-              ↩ Undo Pick
+            <button onclick="resetUmaPools()" class="btn btn-outline btn-sm" style="color:var(--team-red);" title="Reset the entire draft">
+              🔄 Reset Draft
             </button>
           </div>
         </div>
 
-        <div class="draft-layout">
-          <div class="pool-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-              <span class="card-title" style="font-size:12px;">Player Pool</span>
-              <span id="pool-count" class="pill-count">24</span>
+        <div class="draft-queue-horizon">
+          <span class="queue-lbl">Upcoming Order:</span>
+          <div id="draft-queue-strip" class="draft-queue-strip">
+            
+          </div>
+        </div>
+      </div>
+
+      
+      <div class="team-budget-cards-grid">
+        
+        <div id="budget-card-red" class="team-budget-card red active" onclick="setSelectedDrawTeam('red')">
+          <div class="budget-card-top">
+            <span class="team-tag red">🔴 Red Team</span>
+            <span id="red-cap-badge" class="cap-tag">Captain Red</span>
+          </div>
+          <div class="budget-stat-row">
+            <div class="budget-amount">
+              <span class="budget-val" id="red-budget-val">120</span>
+              <span class="budget-max">/ 120 🪙</span>
             </div>
-            <input id="player-search" type="text" placeholder="Search player..." oninput="renderPlayerPool()"
-              style="margin-bottom:8px; font-size:12px; padding:7px 10px;">
-            <div id="player-pool-list" class="pool-list"></div>
+            <div class="uma-count-badge" id="red-uma-count-badge">0 / 12 Umas</div>
+          </div>
+          <div class="coin-slots" id="red-coin-slots"></div>
+          <div class="budget-card-action">
+            <span class="select-indicator red">✓ Currently Selecting</span>
+          </div>
+        </div>
+
+        
+        <div id="budget-card-blue" class="team-budget-card blue" onclick="setSelectedDrawTeam('blue')">
+          <div class="budget-card-top">
+            <span class="team-tag blue">🔵 Blue Team</span>
+            <span id="blue-cap-badge" class="cap-tag">Captain Blue</span>
+          </div>
+          <div class="budget-stat-row">
+            <div class="budget-amount">
+              <span class="budget-val" id="blue-budget-val">120</span>
+              <span class="budget-max">/ 120 🪙</span>
+            </div>
+            <div class="uma-count-badge" id="blue-uma-count-badge">0 / 12 Umas</div>
+          </div>
+          <div class="coin-slots" id="blue-coin-slots"></div>
+          <div class="budget-card-action">
+            <span class="select-indicator blue">Select This Team ➔</span>
+          </div>
+        </div>
+
+        
+        <div id="budget-card-yellow" class="team-budget-card yellow" onclick="setSelectedDrawTeam('yellow')">
+          <div class="budget-card-top">
+            <span class="team-tag yellow">🟡 Yellow Team</span>
+            <span id="yellow-cap-badge" class="cap-tag">Captain Yellow</span>
+          </div>
+          <div class="budget-stat-row">
+            <div class="budget-amount">
+              <span class="budget-val" id="yellow-budget-val">120</span>
+              <span class="budget-max">/ 120 🪙</span>
+            </div>
+            <div class="uma-count-badge" id="yellow-uma-count-badge">0 / 12 Umas</div>
+          </div>
+          <div class="coin-slots" id="yellow-coin-slots"></div>
+          <div class="budget-card-action">
+            <span class="select-indicator yellow">Select This Team ➔</span>
+          </div>
+        </div>
+      </div>
+
+      
+      <div class="market-layout">
+        
+        <div class="market-catalog-card">
+          <div class="catalog-toolbar">
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="market-search-input" placeholder="Search Uma Musume (e.g. Oguri, Teio, Silence)..." oninput="onMarketSearchInput(this.value)">
+              <button id="btn-clear-search" onclick="clearMarketSearch()" class="btn-clear-search hidden">✕</button>
+            </div>
+            <div class="sort-wrap">
+              <label class="sort-lbl">Sort:</label>
+              <select id="market-sort-select" onchange="onMarketSortChange(this.value)" class="sort-select">
+                
+                <option value="az">Name (A ➔ Z)</option>
+                <option value="za">Name (Z ➔ A)</option>
+              </select>
+            </div>
           </div>
 
-          <div class="teams-panel">
-            <div id="team-card-red" class="team-roster-card red">
-              <div class="team-roster-header">
-                <span class="team-tag red">🔴 Red Team</span>
-                <span id="red-roster-count" class="pill-count">1/9</span>
-              </div>
-              <div id="team-list-red"></div>
-            </div>
+          <div class="filter-tabs-row">
+            <button class="filter-tab active" data-filter="all" onclick="setMarketFilter('all')">All (116)</button>
+            <button class="filter-tab" data-filter="available" onclick="setMarketFilter('available')">Available Only</button>
+            <button class="filter-tab" data-filter="myteam" onclick="setMarketFilter('myteam')">My Team Umas</button>
+          </div>
 
-            <div id="team-card-blue" class="team-roster-card blue">
-              <div class="team-roster-header">
-                <span class="team-tag blue">🔵 Blue Team</span>
-                <span id="blue-roster-count" class="pill-count">1/9</span>
-              </div>
-              <div id="team-list-blue"></div>
+          <div class="catalog-status-bar">
+            <span id="market-counter-text">116 Umas listed</span>
+            <div id="market-active-team-hint" class="active-team-hint">
+              Active Buyer: <b id="hint-team-name" style="color:var(--team-red);">🔴 Red Team</b> (Remaining: <span id="hint-team-budget">120</span> 🪙)
             </div>
+          </div>
 
-            <div id="team-card-yellow" class="team-roster-card yellow">
-              <div class="team-roster-header">
-                <span class="team-tag yellow">🟡 Yellow Team</span>
-                <span id="yellow-roster-count" class="pill-count">1/9</span>
+          <div id="market-cards-container" class="market-cards-grid">
+            
+          </div>
+        </div>
+
+        
+        <div class="market-rosters-column">
+          
+          <div class="market-roster-box red">
+            <div class="market-roster-header">
+              <div>
+                <span class="team-tag red">🔴 Red Team Umas</span>
+                <span class="roster-budget-tag" id="roster-red-budget">💰 120 🪙</span>
               </div>
-              <div id="team-list-yellow"></div>
+              <span id="red-uma-count" class="pill-count">0 / 12 Umas</span>
             </div>
+            <div id="red-uma-list" class="market-roster-slots"></div>
+          </div>
+
+          
+          <div class="market-roster-box blue">
+            <div class="market-roster-header">
+              <div>
+                <span class="team-tag blue">🔵 Blue Team Umas</span>
+                <span class="roster-budget-tag" id="roster-blue-budget">💰 120 🪙</span>
+              </div>
+              <span id="blue-uma-count" class="pill-count">0 / 12 Umas</span>
+            </div>
+            <div id="blue-uma-list" class="market-roster-slots"></div>
+          </div>
+
+          
+          <div class="market-roster-box yellow">
+            <div class="market-roster-header">
+              <div>
+                <span class="team-tag yellow">🟡 Yellow Team Umas</span>
+                <span class="roster-budget-tag" id="roster-yellow-budget">💰 120 🪙</span>
+              </div>
+              <span id="yellow-uma-count" class="pill-count">0 / 12 Umas</span>
+            </div>
+            <div id="yellow-uma-list" class="market-roster-slots"></div>
           </div>
         </div>
       </div>
 
     </section>
 
-    <section id="tab-3" class="tab-content">
+    
+    <section id="tab-4" class="tab-content">
       <div class="score-hero">
         <div class="score-hero-info">
-          <h2>🏆 Tournament Match Scoring & Leaderboard</h2>
+          <h2>🏆 Stage 4: Tournament Scoring & Leaderboard</h2>
           <p>Record top 5 race placements (1st=10p, 2nd=7p, 3rd=5p, 4th=3p, 5th=1p) and monitor live team and player standings.</p>
         </div>
         <div class="score-hero-actions">
@@ -322,6 +507,47 @@
 
       <div id="scoring-leaderboard-grid" class="scoring-leaderboard-grid"></div>
 
+      
+      <div class="pairings-section-card">
+        <div class="pairings-header">
+          <div>
+            <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main);">🏇 Team Player ➔ Uma Pairings</h3>
+            <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">
+              Pair each team member with their designated Uma from their 12 drafted characters. Selecting a player in the race form will automatically lock in their paired Uma!
+            </p>
+          </div>
+          <button type="button" onclick="renderPlayerUmaPairingsUI()" class="btn btn-outline btn-sm" title="Refresh Pairings List">
+            🔄 Refresh Pairings
+          </button>
+        </div>
+        <div id="player-uma-pairings-container" class="pairings-grid-3">
+          
+        </div>
+      </div>
+
+      <div class="track-results-section-card">
+        <div class="pairings-header">
+          <div>
+            <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main);">🏁 Track-by-Track Results & Podiums</h3>
+            <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">
+              Course-by-course breakdown: Winners, podium finishers, and team points scored on each individual racetrack.
+            </p>
+          </div>
+          <button type="button" onclick="renderTrackResultsBoard()" class="btn btn-outline btn-sm" title="Refresh Track Standings">
+            🔄 Refresh
+          </button>
+        </div>
+
+        <div id="track-results-cards-grid" class="track-results-cards-grid"></div>
+
+        <div style="margin-top:18px;">
+          <div style="font-size:13px; font-weight:800; color:var(--text-main); margin-bottom:8px;">
+            📊 Team Points by Race Course Matrix
+          </div>
+          <div id="track-points-matrix-container" class="table-responsive"></div>
+        </div>
+      </div>
+
       <div class="scoring-two-col">
         <div class="card">
           <div class="card-header">
@@ -330,8 +556,21 @@
 
           <form id="record-race-form" onsubmit="recordRaceResult(event)">
             <div style="margin-bottom:14px;">
-              <label class="lbl">Race / Match Title:</label>
-              <input id="race-title-input" type="text" value="Race 1" placeholder="e.g. Race 1 - Tokyo Turf 2400m" required>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                <label class="lbl" style="margin:0;">Race Course & Title:</label>
+                <div id="quick-track-chips-container" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+              </div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <select id="race-track-select" class="score-select" onchange="onRaceTrackSelectChange(this.value)" required>
+                  <option value="tokyo-2400">👑 Tokyo 2400 (Medium • Turf)</option>
+                  <option value="chukyo-1200">⚡ Chukyo 1200 (Sprint • Turf)</option>
+                  <option value="sapporo-1500">🏃 Sapporo 1500 (Mile • Turf)</option>
+                  <option value="hakodate-2600">🏔️ Hakodate 2600 (Long • Turf)</option>
+                  <option value="morioka-1600">🏜️ Morioka 1600 (Dirt • Mile)</option>
+                  <option value="other">🏁 Other / Custom Track</option>
+                </select>
+                <input id="race-title-input" type="text" value="Race 1 - Tokyo 2400" placeholder="e.g. Race 1 - Tokyo 2400" required>
+              </div>
             </div>
 
             <div class="placement-entry-box first">
@@ -354,15 +593,18 @@
                 </div>
                 <div>
                   <label class="lbl">Player</label>
-                  <select id="race-first-player" class="score-select">
+                  <select id="race-first-player" onchange="onRacePlacementPlayerChange('first')" class="score-select">
                     <option value="">-- Select Player --</option>
                   </select>
                 </div>
                 <div>
                   <label class="lbl">Uma Musume</label>
-                  <select id="race-first-uma" class="score-select">
-                    <option value="">-- Select Uma --</option>
-                  </select>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <img id="race-first-uma-thumb" src="" alt="Uma" class="uma-mini-thumb hidden">
+                    <select id="race-first-uma" onchange="onRacePlacementUmaChange('first')" class="score-select" style="flex:1;">
+                      <option value="">-- Select Uma --</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -387,15 +629,18 @@
                 </div>
                 <div>
                   <label class="lbl">Player</label>
-                  <select id="race-second-player" class="score-select">
+                  <select id="race-second-player" onchange="onRacePlacementPlayerChange('second')" class="score-select">
                     <option value="">-- Select Player --</option>
                   </select>
                 </div>
                 <div>
                   <label class="lbl">Uma Musume</label>
-                  <select id="race-second-uma" class="score-select">
-                    <option value="">-- Select Uma --</option>
-                  </select>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <img id="race-second-uma-thumb" src="" alt="Uma" class="uma-mini-thumb hidden">
+                    <select id="race-second-uma" onchange="onRacePlacementUmaChange('second')" class="score-select" style="flex:1;">
+                      <option value="">-- Select Uma --</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -420,15 +665,18 @@
                 </div>
                 <div>
                   <label class="lbl">Player</label>
-                  <select id="race-third-player" class="score-select">
+                  <select id="race-third-player" onchange="onRacePlacementPlayerChange('third')" class="score-select">
                     <option value="">-- Select Player --</option>
                   </select>
                 </div>
                 <div>
                   <label class="lbl">Uma Musume</label>
-                  <select id="race-third-uma" class="score-select">
-                    <option value="">-- Select Uma --</option>
-                  </select>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <img id="race-third-uma-thumb" src="" alt="Uma" class="uma-mini-thumb hidden">
+                    <select id="race-third-uma" onchange="onRacePlacementUmaChange('third')" class="score-select" style="flex:1;">
+                      <option value="">-- Select Uma --</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -453,15 +701,18 @@
                 </div>
                 <div>
                   <label class="lbl">Player</label>
-                  <select id="race-fourth-player" class="score-select">
+                  <select id="race-fourth-player" onchange="onRacePlacementPlayerChange('fourth')" class="score-select">
                     <option value="">-- Select Player --</option>
                   </select>
                 </div>
                 <div>
                   <label class="lbl">Uma Musume</label>
-                  <select id="race-fourth-uma" class="score-select">
-                    <option value="">-- Select Uma --</option>
-                  </select>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <img id="race-fourth-uma-thumb" src="" alt="Uma" class="uma-mini-thumb hidden">
+                    <select id="race-fourth-uma" onchange="onRacePlacementUmaChange('fourth')" class="score-select" style="flex:1;">
+                      <option value="">-- Select Uma --</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -486,15 +737,18 @@
                 </div>
                 <div>
                   <label class="lbl">Player</label>
-                  <select id="race-fifth-player" class="score-select">
+                  <select id="race-fifth-player" onchange="onRacePlacementPlayerChange('fifth')" class="score-select">
                     <option value="">-- Select Player --</option>
                   </select>
                 </div>
                 <div>
                   <label class="lbl">Uma Musume</label>
-                  <select id="race-fifth-uma" class="score-select">
-                    <option value="">-- Select Uma --</option>
-                  </select>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <img id="race-fifth-uma-thumb" src="" alt="Uma" class="uma-mini-thumb hidden">
+                    <select id="race-fifth-uma" onchange="onRacePlacementUmaChange('fifth')" class="score-select" style="flex:1;">
+                      <option value="">-- Select Uma --</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -506,17 +760,22 @@
         </div>
 
         <div class="card">
-          <div class="card-header">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <span class="card-title">📜 Race Match History</span>
             <span id="match-count-badge" class="pill-count">0 Races</span>
           </div>
+          <div id="match-history-track-filters" class="track-filter-tabs-row" style="margin: 0 0 12px 0;"></div>
           <div id="match-history-list" class="match-history-scroll"></div>
         </div>
       </div>
 
+      
       <div class="card" style="margin-top:24px;">
-        <div class="card-header">
-          <span class="card-title">👤 Individual Player Performance Leaderboard</span>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <span class="card-title">👤 Detailed Player & Uma Performance Leaderboard</span>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Complete breakdown of races, podiums, finishes, and point contributions per player and their paired Uma.</div>
+          </div>
         </div>
         <div class="table-responsive" style="overflow-x:auto;">
           <table class="scoring-player-table">
@@ -524,22 +783,39 @@
               <tr>
                 <th style="width:50px;">#</th>
                 <th>Player</th>
+                <th>Paired Uma</th>
                 <th>Team</th>
-                <th style="text-align:center;">1st Wins</th>
-                <th style="text-align:center;">Top 5 Finishes</th>
-                <th style="text-align:right;">Points Contributed</th>
+                <th style="text-align:center;">Races</th>
+                <th style="text-align:center;">🥇 1st</th>
+                <th style="text-align:center;">🥈 2nd</th>
+                <th style="text-align:center;">🥉 3rd</th>
+                <th style="text-align:center;">4th</th>
+                <th style="text-align:center;">5th</th>
+                <th style="text-align:center;">Podium %</th>
+                <th style="text-align:right;">Total Points</th>
               </tr>
             </thead>
             <tbody id="player-leaderboard-body"></tbody>
           </table>
         </div>
       </div>
+
+      
+      <div class="card" style="margin-top:24px;">
+        <div class="card-header">
+          <span class="card-title">🏇 Top Performing Uma Musumes (Tournament MVP Board)</span>
+        </div>
+        <div id="uma-mvp-cards-container" class="mvp-grid-5"></div>
+      </div>
     </section>
+
   </main>
 
   <script src="js/data.js"></script>
+  <script src="js/uma_images.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/track.js"></script>
   <script src="js/draft.js"></script>
   <script src="js/draw.js"></script>
   <script src="js/score.js"></script>

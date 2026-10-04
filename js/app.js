@@ -6,6 +6,10 @@ function updateCaptainSubtitles() {
   if (document.getElementById('red-cap-sub')) document.getElementById('red-cap-sub').textContent = `Captain: ${redCap}`;
   if (document.getElementById('blue-cap-sub')) document.getElementById('blue-cap-sub').textContent = `Captain: ${blueCap}`;
   if (document.getElementById('yellow-cap-sub')) document.getElementById('yellow-cap-sub').textContent = `Captain: ${yellowCap}`;
+
+  if (document.getElementById('red-cap-badge')) document.getElementById('red-cap-badge').textContent = redCap;
+  if (document.getElementById('blue-cap-badge')) document.getElementById('blue-cap-badge').textContent = blueCap;
+  if (document.getElementById('yellow-cap-badge')) document.getElementById('yellow-cap-badge').textContent = yellowCap;
 }
 
 function updateCaptainsAndSave() {
@@ -18,7 +22,7 @@ function updateCaptainsAndSave() {
 
 function switchTab(tabNum, save = true) {
   currentTab = tabNum;
-  [1, 2, 3].forEach(n => {
+  [1, 2, 3, 4].forEach(n => {
     document.getElementById(`tab-${n}`)?.classList.remove('active');
     document.getElementById(`nav-btn-${n}`)?.classList.remove('active');
   });
@@ -27,12 +31,16 @@ function switchTab(tabNum, save = true) {
   document.getElementById(`nav-btn-${tabNum}`)?.classList.add('active');
 
   if (tabNum === 1) {
-    renderTeamUmaLists();
-    updateProgressUI();
+    if (typeof renderFixedTeamsUI === 'function') renderFixedTeamsUI();
     updateCaptainSubtitles();
   } else if (tabNum === 2) {
-    renderSnakeDraftBoard();
+    if (typeof renderTracksUI === 'function') renderTracksUI();
   } else if (tabNum === 3) {
+    if (typeof renderMarketUI === 'function') renderMarketUI();
+    else renderTeamUmaLists();
+    updateProgressUI();
+    updateCaptainSubtitles();
+  } else if (tabNum === 4) {
     renderScoringTab();
   }
 
@@ -41,27 +49,14 @@ function switchTab(tabNum, save = true) {
 
 document.addEventListener('DOMContentLoaded', () => {
   checkAndLoadStateFromURL();
-  const hasSavedData = loadStateFromStorage();
-  const inputEl = document.getElementById('player-bulk-input');
+  loadStateFromStorage();
 
-  if (!hasSavedData) {
-    if (inputEl) {
-      inputEl.value = DEFAULT_PLAYERS.join('\n');
-    }
-    updatePlayerInputHint();
-  } else {
-    if (inputEl && !inputEl.value.trim()) {
-      inputEl.value = DEFAULT_PLAYERS.join('\n');
-    }
-    updatePlayerInputHint();
-  }
-
-  renderTeamUmaLists();
+  if (typeof renderFixedTeamsUI === 'function') renderFixedTeamsUI();
+  if (typeof renderTracksUI === 'function') renderTracksUI();
+  if (typeof renderMarketUI === 'function') renderMarketUI();
+  else renderTeamUmaLists();
   updateProgressUI();
   updateCaptainSubtitles();
   renderScoringTab();
-
-  if (inputEl) {
-    inputEl.addEventListener('input', updatePlayerInputHint);
-  }
 });
+

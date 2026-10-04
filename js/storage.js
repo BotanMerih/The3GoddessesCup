@@ -20,12 +20,15 @@ function saveStateToStorage() {
     snakeDraftOrder,
     currentPickIndex,
     pickHistory,
+    umaPickHistory: (typeof umaPickHistory !== 'undefined' ? umaPickHistory : []),
     selectedDrawTeam,
+    tracksState,
     currentTab,
     currentRoundRobinIndex,
     turnDuration,
     matches,
     bonusPoints,
+    playerUmaAssignments: (typeof playerUmaAssignments !== 'undefined' ? playerUmaAssignments : {}),
     isDraftActive: !document.getElementById('draft-live-view').classList.contains('hidden'),
     captainInputs: {
       red: document.getElementById('cap-red')?.value || "Captain Red",
@@ -49,6 +52,16 @@ function loadStateFromStorage() {
 
     if (state.teams) {
       teams = state.teams;
+      TEAM_KEYS.forEach(t => {
+        if (!teams[t].umas) teams[t].umas = [];
+        teams[t].budget = getTeamBudget(t);
+        if (!Array.isArray(teams[t].players)) {
+          teams[t].players = [];
+        }
+        if (!teams[t].cap) {
+          teams[t].cap = `Captain ${teams[t].name || t}`;
+        }
+      });
       if (!teams.red.package) teams.red.package = "A";
       if (!teams.blue.package) teams.blue.package = "B";
       if (!teams.yellow.package) teams.yellow.package = "C";
@@ -68,11 +81,18 @@ function loadStateFromStorage() {
     if (state.snakeDraftOrder) snakeDraftOrder = state.snakeDraftOrder;
     if (typeof state.currentPickIndex === 'number') currentPickIndex = state.currentPickIndex;
     if (state.pickHistory) pickHistory = state.pickHistory;
+    if (Array.isArray(state.umaPickHistory)) umaPickHistory = state.umaPickHistory;
     if (state.selectedDrawTeam) selectedDrawTeam = state.selectedDrawTeam;
     if (typeof state.currentRoundRobinIndex === 'number') currentRoundRobinIndex = state.currentRoundRobinIndex;
 
+    if (state.tracksState) {
+      tracksState = state.tracksState;
+    }
     if (Array.isArray(state.matches)) matches = state.matches;
     if (state.bonusPoints) bonusPoints = state.bonusPoints;
+    if (state.playerUmaAssignments && typeof state.playerUmaAssignments === 'object') {
+      playerUmaAssignments = state.playerUmaAssignments;
+    }
 
     if (typeof state.turnDuration === 'number') {
       turnDuration = state.turnDuration;
@@ -199,7 +219,10 @@ function importTournamentSaveFile(event) {
       }
       localStorage.setItem(STORAGE_KEY, content);
       loadStateFromStorage();
-      renderTeamUmaLists();
+      if (typeof renderMarketUI === 'function') renderMarketUI();
+      else renderTeamUmaLists();
+      if (typeof renderTracksUI === 'function') renderTracksUI();
+      if (typeof renderFixedTeamsUI === 'function') renderFixedTeamsUI();
       updateProgressUI();
       updateCaptainSubtitles();
       if (typeof renderScoringTab === 'function') renderScoringTab();

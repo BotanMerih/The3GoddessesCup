@@ -1,297 +1,170 @@
-function updateDraftTimerSetting() {
-  const select = document.getElementById('draft-timer-select');
-  turnDuration = parseInt(select.value, 10);
-  saveStateToStorage();
-}
+let activeBulkEdit = {
+  red: false,
+  blue: false,
+  yellow: false
+};
 
-function startDraftTurnTimer() {
-  stopDraftTurnTimer();
-  const timerContainer = document.getElementById('draft-timer-container');
-  const timerVal = document.getElementById('draft-timer-val');
+function renderFixedTeamsUI() {
+  TEAM_KEYS.forEach(t => {
+    const cardEl = document.getElementById(`fixed-team-card-${t}`);
+    const capInputEl = document.getElementById(`fixed-team-cap-${t}`);
+    const countEl = document.getElementById(`fixed-team-count-${t}`);
+    const listEl = document.getElementById(`fixed-team-list-${t}`);
+    const bulkBoxEl = document.getElementById(`fixed-team-bulk-${t}`);
+    const bulkTextarea = document.getElementById(`fixed-team-textarea-${t}`);
 
-  if (!timerContainer || !timerVal) return;
+    const team = teams[t];
+    if (!team) return;
 
-  if (turnDuration === 0) {
-    timerContainer.classList.add('hidden');
-    document.getElementById('btn-timer-pause')?.classList.add('hidden');
-    return;
-  }
-
-  timerContainer.classList.remove('hidden');
-  document.getElementById('btn-timer-pause')?.classList.remove('hidden');
-  timerContainer.classList.remove('urgent');
-
-  turnTimeRemaining = turnDuration;
-  isDraftTimerPaused = false;
-  if (document.getElementById('btn-timer-pause')) {
-    document.getElementById('btn-timer-pause').innerHTML = "⏸️ Pause";
-  }
-  timerVal.textContent = `${turnTimeRemaining}s`;
-
-  draftTimerInterval = setInterval(() => {
-    if (isDraftTimerPaused) return;
-
-    turnTimeRemaining--;
-
-    if (turnTimeRemaining <= 10 && turnTimeRemaining > 0) {
-      timerContainer.classList.add('urgent');
-      playBeep(750, 'sine', 0.06);
-    } else if (turnTimeRemaining > 10) {
-      timerContainer.classList.remove('urgent');
+    if (capInputEl && document.activeElement !== capInputEl) {
+      capInputEl.value = team.cap || `Captain ${team.name || t}`;
     }
 
-    timerVal.textContent = `${Math.max(0, turnTimeRemaining)}s`;
+    const players = team.players || [];
+    if (countEl) countEl.textContent = `${players.length} Players`;
 
-    if (turnTimeRemaining <= 0) {
-      playBeep(440, 'triangle', 0.25);
-      setTimeout(() => playBeep(330, 'triangle', 0.3), 150);
-
-      if (playerPool.length > 0 && currentPickIndex < snakeDraftOrder.length) {
-        pickPlayer(playerPool[0]);
+    if (bulkBoxEl && bulkTextarea) {
+      if (activeBulkEdit[t]) {
+        bulkBoxEl.classList.remove('hidden');
+        if (listEl) listEl.classList.add('hidden');
+        if (document.activeElement !== bulkTextarea) {
+          bulkTextarea.value = players.join('\n');
+        }
       } else {
-        stopDraftTurnTimer();
+        bulkBoxEl.classList.add('hidden');
+        if (listEl) listEl.classList.remove('hidden');
       }
     }
-  }, 1000);
-}
 
-function stopDraftTurnTimer() {
-  if (draftTimerInterval) {
-    clearInterval(draftTimerInterval);
-    draftTimerInterval = null;
-  }
-  const timerContainer = document.getElementById('draft-timer-container');
-  if (timerContainer) timerContainer.classList.remove('urgent');
-}
-
-function toggleDraftTimer() {
-  isDraftTimerPaused = !isDraftTimerPaused;
-  const btn = document.getElementById('btn-timer-pause');
-  if (btn) {
-    btn.innerHTML = isDraftTimerPaused ? "▶️ Resume" : "⏸️ Pause";
-  }
-}
-
-function populateCaptainSelectors() {
-  const inputEl = document.getElementById('player-bulk-input');
-  if (!inputEl) return;
-  const players = inputEl.value.trim().split('\n').map(p => p.trim()).filter(p => p.length > 0);
-
-  TEAM_KEYS.forEach((t, idx) => {
-    const select = document.getElementById(`cap-${t}`);
-    if (!select) return;
-    const currentVal = teams[t]?.cap || select.value || (players[idx] || `Captain ${teams[t]?.name || t}`);
-
-    let html = `<option value="Captain ${teams[t]?.name || t}">👑 Captain ${teams[t]?.name || t} (Custom)</option>`;
-    players.forEach(p => {
-      html += `<option value="${p}">${p}</option>`;
-    });
-
-    select.innerHTML = html;
-    if (players.includes(currentVal) || currentVal === `Captain ${teams[t]?.name || t}`) {
-      select.value = currentVal;
-    } else if (players[idx]) {
-      select.value = players[idx];
-      teams[t].cap = players[idx];
+    if (listEl && !activeBulkEdit[t]) {
+      if (players.length === 0) {
+        listEl.innerHTML = `<div class="empty-roster-text">No players in this team yet.<br><span style="font-size:0.8rem; color:var(--text-muted);">Add players one by one below or click <b>📝 Bulk Edit</b> to paste your list.</span></div>`;
+      } else {
+        listEl.innerHTML = players.map((p, idx) => {
+          const isCap = (p === team.cap);
+          return `
+            <div class="fixed-player-row ${isCap ? 'is-captain' : ''}">
+              <div class="fixed-player-left">
+                <span class="fixed-player-idx">${idx + 1}</span>
+                <span class="fixed-player-name">${p}</span>
+                ${isCap ? '<span class="captain-badge-inline">👑 Captain</span>' : ''}
+              </div>
+              <div class="fixed-player-actions">
+                ${!isCap ? `<button class="btn-make-cap" onclick="setPlayerAsCaptain('${t}', '${p.replace(/'/g, "\\'")}')" title="Make Captain">👑</button>` : ''}
+                <button class="btn-del-player" onclick="removePlayerFromTeam('${t}', ${idx})" title="Remove Player">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
   });
 
+  updateTotalPlayersCount();
   updateCaptainSubtitles();
 }
 
-function updatePlayerInputHint() {
-  const inputEl = document.getElementById('player-bulk-input');
-  if (!inputEl) return;
-  const players = inputEl.value.trim().split('\n').map(p => p.trim()).filter(p => p.length > 0);
-  
-  populateCaptainSelectors();
+function updateTotalPlayersCount() {
+  const badge = document.getElementById('total-players-badge');
+  if (badge) {
+    const total = TEAM_KEYS.reduce((acc, t) => acc + (teams[t]?.players?.length || 0), 0);
+    badge.textContent = `${total} Players Total`;
+  }
+}
 
-  const capRed = document.getElementById('cap-red')?.value || teams.red.cap;
-  const capBlue = document.getElementById('cap-blue')?.value || teams.blue.cap;
-  const capYellow = document.getElementById('cap-yellow')?.value || teams.yellow.cap;
-  const selectedCaps = [capRed, capBlue, capYellow].filter(Boolean);
-
-  const draftable = players.filter(p => !selectedCaps.includes(p));
-  const slotsPerTeam = Math.ceil(draftable.length / 3);
-
-  document.getElementById('player-count-hint').textContent = `${players.length} total players detected • 3 Captains assigned • ${draftable.length} players in Snake Draft (${slotsPerTeam} slots per team).`;
+function updateTeamCaptain(teamKey, newCap) {
+  const cap = (newCap || '').trim();
+  if (!cap) return;
+  teams[teamKey].cap = cap;
+  updateCaptainSubtitles();
   saveStateToStorage();
 }
 
-function generateSnakeOrder(playerCount) {
-  const totalRounds = Math.ceil(playerCount / 3);
-  const order = [];
-  for (let round = 1; round <= totalRounds; round++) {
-    if (round % 2 !== 0) {
-      order.push({ round, team: 'red' }, { round, team: 'blue' }, { round, team: 'yellow' });
-    } else {
-      order.push({ round, team: 'yellow' }, { round, team: 'blue' }, { round, team: 'red' });
-    }
-  }
-  return order.slice(0, playerCount);
+function setPlayerAsCaptain(teamKey, playerName) {
+  teams[teamKey].cap = playerName;
+  const input = document.getElementById(`fixed-team-cap-${teamKey}`);
+  if (input) input.value = playerName;
+  playBeep(520, 'sine', 0.1);
+  renderFixedTeamsUI();
+  saveStateToStorage();
 }
 
-function startSnakeDraft() {
-  const text = document.getElementById('player-bulk-input').value.trim();
-  const players = text.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+function addPlayerToTeam(teamKey) {
+  const input = document.getElementById(`add-player-input-${teamKey}`);
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
 
-  const capRed = document.getElementById('cap-red')?.value.trim() || "Captain Red";
-  const capBlue = document.getElementById('cap-blue')?.value.trim() || "Captain Blue";
-  const capYellow = document.getElementById('cap-yellow')?.value.trim() || "Captain Yellow";
-
-  if (new Set([capRed, capBlue, capYellow]).size < 3) {
-    alert("Please select 3 different captains for Red, Blue, and Yellow teams.");
+  if (teams[teamKey].players.includes(name)) {
+    alert(`"${name}" is already in this team's roster!`);
     return;
   }
 
-  const draftablePlayers = players.filter(p => p !== capRed && p !== capBlue && p !== capYellow);
+  teams[teamKey].players.push(name);
+  input.value = '';
+  input.focus();
 
-  if (draftablePlayers.length < 3) {
-    alert(`Please enter at least 3 draftable players. Current draftable count: ${draftablePlayers.length}`);
-    return;
-  }
-
-  teams.red.cap = capRed;
-  teams.blue.cap = capBlue;
-  teams.yellow.cap = capYellow;
-
-  teams.red.players = [];
-  teams.blue.players = [];
-  teams.yellow.players = [];
-
-  assignRandomPackages();
-
-  document.getElementById('red-cap-sub').textContent = `Captain: ${teams.red.cap}`;
-  document.getElementById('blue-cap-sub').textContent = `Captain: ${teams.blue.cap}`;
-  document.getElementById('yellow-cap-sub').textContent = `Captain: ${teams.yellow.cap}`;
-
-  playerPool = [...draftablePlayers];
-  snakeDraftOrder = generateSnakeOrder(draftablePlayers.length);
-  currentPickIndex = 0;
-  pickHistory = [];
-
-  document.getElementById('setup-view').classList.add('hidden');
-  document.getElementById('draft-live-view').classList.remove('hidden');
-
-  renderSnakeDraftBoard();
-  startDraftTurnTimer();
+  playBeep(650, 'sine', 0.08);
+  renderFixedTeamsUI();
   saveStateToStorage();
+}
+
+function removePlayerFromTeam(teamKey, index) {
+  teams[teamKey].players.splice(index, 1);
+  playBeep(380, 'sine', 0.1);
+  renderFixedTeamsUI();
+  saveStateToStorage();
+}
+
+function toggleTeamBulkEdit(teamKey) {
+  activeBulkEdit[teamKey] = !activeBulkEdit[teamKey];
+  const btn = document.getElementById(`btn-bulk-toggle-${teamKey}`);
+  if (btn) {
+    btn.textContent = activeBulkEdit[teamKey] ? "📋 View List" : "📝 Bulk Edit";
+  }
+  renderFixedTeamsUI();
+}
+
+function saveTeamRosterBulk(teamKey) {
+  const textarea = document.getElementById(`fixed-team-textarea-${teamKey}`);
+  if (!textarea) return;
+
+  const rawLines = textarea.value.split('\n');
+  const cleaned = rawLines.map(l => l.trim()).filter(l => l.length > 0);
+
+  const unique = Array.from(new Set(cleaned));
+
+  teams[teamKey].players = unique;
+  activeBulkEdit[teamKey] = false;
+
+  const btn = document.getElementById(`btn-bulk-toggle-${teamKey}`);
+  if (btn) btn.textContent = "📝 Bulk Edit";
+
+  playCoinSound();
+  renderFixedTeamsUI();
+  saveStateToStorage();
+}
+
+function clearAllTeamRosters() {
+  if (!confirm("Are you sure you want to clear all team rosters?")) return;
+
+  TEAM_KEYS.forEach(t => {
+    teams[t].players = [];
+    activeBulkEdit[t] = false;
+  });
+
+  playBeep(440, 'triangle', 0.15);
+  renderFixedTeamsUI();
+  saveStateToStorage();
+}
+
+function resetToDefaultFixedTeams() {
+  clearAllTeamRosters();
 }
 
 function renderSnakeDraftBoard() {
-  const totalRounds = Math.ceil(snakeDraftOrder.length / 3);
-
-  TEAM_KEYS.forEach(t => {
-    const container = document.getElementById(`team-list-${t}`);
-    const totalTeamSlots = snakeDraftOrder.filter(item => item.team === t).length;
-    const pCount = teams[t]?.players?.length || 0;
-    document.getElementById(`${t}-roster-count`).textContent = `${pCount + 1}/${totalTeamSlots + 1}`;
-
-    let html = `
-      <div class="slot-item captain">
-        <span>👑 ${teams[t]?.cap || 'Captain'}</span>
-        <span style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">CAPTAIN</span>
-      </div>
-    `;
-
-    for (let i = 0; i < totalTeamSlots; i++) {
-      const p = teams[t]?.players?.[i];
-      if (p) {
-        html += `
-          <div class="slot-item filled">
-            <span><b style="color:var(--text-faint); font-size:11px; margin-right:4px;">${i + 1}.</b> ${p}</span>
-          </div>
-        `;
-      } else {
-        html += `
-          <div class="slot-item empty">
-            <span>[Empty Slot ${i + 1}]</span>
-          </div>
-        `;
-      }
-    }
-    container.innerHTML = html;
-  });
-
-  renderPlayerPool();
-
-  if (currentPickIndex < snakeDraftOrder.length) {
-    const cur = snakeDraftOrder[currentPickIndex];
-    document.getElementById('current-round-text').textContent = `${cur.round} / ${totalRounds}`;
-    document.getElementById('current-pick-text').textContent = `${currentPickIndex + 1} / ${snakeDraftOrder.length}`;
-
-    const badge = document.getElementById('active-turn-badge');
-    badge.textContent = `Turn: ${(teams[cur.team]?.name || cur.team).toUpperCase()} TEAM`;
-    badge.className = `turn-pill ${cur.team}`;
-
-    TEAM_KEYS.forEach(t => {
-      const card = document.getElementById(`team-card-${t}`);
-      card.classList.remove('active-turn');
-      if (t === cur.team) card.classList.add('active-turn');
-    });
-
-    document.getElementById('btn-proceed-scoring')?.classList.add('hidden');
-  } else {
-    stopDraftTurnTimer();
-    const badge = document.getElementById('active-turn-badge');
-    badge.textContent = "DRAFT COMPLETED ✅";
-    badge.className = "turn-pill done";
-
-    const timerContainer = document.getElementById('draft-timer-container');
-    if (timerContainer) timerContainer.classList.add('hidden');
-    const pauseBtn = document.getElementById('btn-timer-pause');
-    if (pauseBtn) pauseBtn.classList.add('hidden');
-
-    TEAM_KEYS.forEach(t => {
-      document.getElementById(`team-card-${t}`).classList.remove('active-turn');
-    });
-
-    document.getElementById('btn-proceed-scoring')?.classList.remove('hidden');
-  }
+  renderFixedTeamsUI();
 }
-
-function renderPlayerPool() {
-  const el = document.getElementById('player-pool-list');
-  const search = (document.getElementById('player-search')?.value || "").toLowerCase();
-  document.getElementById('pool-count').textContent = playerPool.length;
-
-  const filtered = playerPool.filter(p => p.toLowerCase().includes(search));
-  el.innerHTML = filtered.map(p => `
-    <button class="pool-btn" onclick="pickPlayer('${p.replace(/'/g, "\\'")}')">
-      <span>${p}</span>
-      <span class="arrow">Pick ➔</span>
-    </button>
-  `).join('');
-}
-
-function pickPlayer(name) {
-  if (currentPickIndex >= snakeDraftOrder.length) return;
-  const cur = snakeDraftOrder[currentPickIndex];
-  teams[cur.team].players.push(name);
-  playerPool = playerPool.filter(p => p !== name);
-  pickHistory.push({ team: cur.team, player: name });
-  currentPickIndex++;
-  renderSnakeDraftBoard();
-
-  if (currentPickIndex < snakeDraftOrder.length) {
-    startDraftTurnTimer();
-  } else {
-    stopDraftTurnTimer();
-    setTimeout(() => {
-      switchTab(3);
-    }, 600);
-  }
-
-  saveStateToStorage();
-}
-
-function undoPick() {
-  if (pickHistory.length === 0) return;
-  const last = pickHistory.pop();
-  currentPickIndex--;
-  teams[last.team].players.pop();
-  playerPool.push(last.player);
-  renderSnakeDraftBoard();
-  startDraftTurnTimer();
-  saveStateToStorage();
-}
+function startSnakeDraft() {}
+function populateCaptainSelectors() {}
+function updatePlayerInputHint() {}

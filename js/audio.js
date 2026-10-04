@@ -15,3 +15,8 @@ function playBeep(freq = 600, type = 'sine', duration = 0.1) {
     osc.stop(ctx.currentTime + duration);
   } catch (e) {}
 }
+
+function playCoinSound() {
+  playBeep(987, 'sine', 0.08);
+  setTimeout(() => playBeep(1318, 'sine', 0.14), 70);
+}
