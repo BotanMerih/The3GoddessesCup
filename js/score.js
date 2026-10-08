@@ -16,12 +16,14 @@ function updatePlayerUmaAssignment(teamKey, playerName, selectedUma) {
 }
 
 function getMatchTrackId(match) {
-  if (match && match.trackId) return match.trackId;
+  if (match && match.trackId) return match.trackId === 'hakodate-2600' ? 'kyoto-3000' : match.trackId;
   const title = (match?.title || '').toLowerCase();
+  if (title.includes('kyoto') || title.includes('3000')) return 'kyoto-3000';
   if (title.includes('chukyo') || title.includes('1200')) return 'chukyo-1200';
   if (title.includes('sapporo') || title.includes('1500')) return 'sapporo-1500';
   if (title.includes('tokyo') || title.includes('2400')) return 'tokyo-2400';
-  if (title.includes('hakodate') || title.includes('2600')) return 'hakodate-2600';
+  // Hakodate 2600 was replaced by Kyoto 3000; old saves map to the new long-distance track.
+  if (title.includes('hakodate') || title.includes('2600')) return 'kyoto-3000';
   if (title.includes('morioka') || title.includes('1600') || title.includes('dirt')) return 'morioka-1600';
   return 'other';
 }
@@ -460,7 +462,7 @@ function renderPlayerUmaPairingsUI() {
 }
 
 function renderScoringTab() {
-  const { teamStats, playerStats, umaStats } = calculateScoringStats();
+  const { teamStats, playerStats, umaStats, trackStats } = calculateScoringStats();
 
   const sortedTeams = [...TEAM_KEYS].sort((a, b) => {
     if (teamStats[b].points !== teamStats[a].points) {

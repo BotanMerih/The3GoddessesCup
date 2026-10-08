@@ -29,7 +29,8 @@ function saveStateToStorage() {
     matches,
     bonusPoints,
     playerUmaAssignments: (typeof playerUmaAssignments !== 'undefined' ? playerUmaAssignments : {}),
-    isDraftActive: !document.getElementById('draft-live-view').classList.contains('hidden'),
+    // The legacy player-draft view no longer exists in index.html; treat it as inactive when missing.
+    isDraftActive: document.getElementById('draft-live-view')?.classList.contains('hidden') === false,
     captainInputs: {
       red: document.getElementById('cap-red')?.value || "Captain Red",
       blue: document.getElementById('cap-blue')?.value || "Captain Blue",
@@ -54,9 +55,13 @@ function loadStateFromStorage() {
       teams = state.teams;
       TEAM_KEYS.forEach(t => {
         if (!teams[t].umas) teams[t].umas = [];
+        // Twin Turbo was removed from the pool.
+        teams[t].umas = teams[t].umas.filter(u => ALL_UMAS.includes(u));
+        if (typeof teams[t].draftDone !== 'boolean') teams[t].draftDone = false;
         teams[t].budget = getTeamBudget(t);
-        if (!Array.isArray(teams[t].players)) {
-          teams[t].players = [];
+        if (!Array.isArray(teams[t].players) || teams[t].players.length === 0) {
+          // Saves made before the rosters were set have no players: use the tournament rosters.
+          teams[t].players = [...(DEFAULT_FIXED_TEAMS[t]?.players || [])];
         }
         if (!teams[t].cap) {
           teams[t].cap = `Captain ${teams[t].name || t}`;
@@ -87,8 +92,17 @@ function loadStateFromStorage() {
 
     if (state.tracksState) {
       tracksState = state.tracksState;
+      // Hakodate 2600 was replaced by Kyoto 3000.
+      (tracksState.tracks || []).forEach(t => { if (t.id === 'hakodate-2600') t.id = 'kyoto-3000'; });
+      (tracksState.history || []).forEach(h => { if (h.trackId === 'hakodate-2600') h.trackId = 'kyoto-3000'; });
+      DEFAULT_TRACKS.forEach(dt => {
+        if (!tracksState.tracks.some(t => t.id === dt.id)) tracksState.tracks.push({ id: dt.id, status: 'available', team: null, order: null });
+      });
     }
-    if (Array.isArray(state.matches)) matches = state.matches;
+    if (Array.isArray(state.matches)) {
+      matches = state.matches;
+      matches.forEach(m => { if (m.trackId === 'hakodate-2600') m.trackId = 'kyoto-3000'; });
+    }
     if (state.bonusPoints) bonusPoints = state.bonusPoints;
     if (state.playerUmaAssignments && typeof state.playerUmaAssignments === 'object') {
       playerUmaAssignments = state.playerUmaAssignments;

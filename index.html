@@ -307,10 +307,10 @@
       <div class="uma-market-hero">
         <div class="market-hero-info">
           <h2>🛍️ Stage 3: 3 Goddesses Uma Market</h2>
-          <p>Each team has a <b>120 🪙 budget</b> to draft their racing Umas. Cost: <b>10 🪙 per Uma</b> (Maximum 12 Umas per team).</p>
+          <p>Each team has a <b>140 🪙 budget</b>. Each Uma has its own price (<b>8 to 48 🪙</b>). Every team must draft <b>at least 9 Umas</b> (up to 18).</p>
         </div>
         <div class="market-hero-actions">
-          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);" title="Reset all selections and refund 120 coins">
+          <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);" title="Reset all selections and refund all coins">
             🔄 Reset Selections
           </button>
           <button id="btn-proceed-to-scoring" onclick="switchTab(4)" class="btn btn-primary" style="background:var(--team-yellow-gradient); color:#fff; border:none; box-shadow:0 4px 14px rgba(217,119,6,0.35);">
@@ -324,8 +324,8 @@
         <div class="draft-live-bar">
           <div class="draft-live-left">
             <span class="snake-badge">🐍 Snake Draft</span>
-            <span id="draft-round-badge" class="draft-round-badge">Round 1 / 12</span>
-            <span id="draft-pick-badge" class="draft-pick-badge">Pick 1 / 36</span>
+            <span id="draft-round-badge" class="draft-round-badge">Round 1</span>
+            <span id="draft-pick-badge" class="draft-pick-badge">Pick 1</span>
           </div>
 
           <div id="draft-on-clock-indicator" class="draft-on-clock red">
@@ -361,10 +361,10 @@
           </div>
           <div class="budget-stat-row">
             <div class="budget-amount">
-              <span class="budget-val" id="red-budget-val">120</span>
-              <span class="budget-max">/ 120 🪙</span>
+              <span class="budget-val" id="red-budget-val">140</span>
+              <span class="budget-max">/ 140 🪙</span>
             </div>
-            <div class="uma-count-badge" id="red-uma-count-badge">0 / 12 Umas</div>
+            <div class="uma-count-badge" id="red-uma-count-badge">0 / 9 Umas</div>
           </div>
           <div class="coin-slots" id="red-coin-slots"></div>
           <div class="budget-card-action">
@@ -380,10 +380,10 @@
           </div>
           <div class="budget-stat-row">
             <div class="budget-amount">
-              <span class="budget-val" id="blue-budget-val">120</span>
-              <span class="budget-max">/ 120 🪙</span>
+              <span class="budget-val" id="blue-budget-val">140</span>
+              <span class="budget-max">/ 140 🪙</span>
             </div>
-            <div class="uma-count-badge" id="blue-uma-count-badge">0 / 12 Umas</div>
+            <div class="uma-count-badge" id="blue-uma-count-badge">0 / 9 Umas</div>
           </div>
           <div class="coin-slots" id="blue-coin-slots"></div>
           <div class="budget-card-action">
@@ -399,10 +399,10 @@
           </div>
           <div class="budget-stat-row">
             <div class="budget-amount">
-              <span class="budget-val" id="yellow-budget-val">120</span>
-              <span class="budget-max">/ 120 🪙</span>
+              <span class="budget-val" id="yellow-budget-val">140</span>
+              <span class="budget-max">/ 140 🪙</span>
             </div>
-            <div class="uma-count-badge" id="yellow-uma-count-badge">0 / 12 Umas</div>
+            <div class="uma-count-badge" id="yellow-uma-count-badge">0 / 9 Umas</div>
           </div>
           <div class="coin-slots" id="yellow-coin-slots"></div>
           <div class="budget-card-action">
@@ -427,20 +427,28 @@
                 
                 <option value="az">Name (A ➔ Z)</option>
                 <option value="za">Name (Z ➔ A)</option>
+                <option value="rating">Rating (High ➔ Low)</option>
+                <option value="price-desc">Price (High ➔ Low)</option>
+                <option value="price-asc">Price (Low ➔ High)</option>
+                <option value="track:chukyo-1200">Chukyo 1200 rating</option>
+                <option value="track:sapporo-1500">Sapporo 1500 rating</option>
+                <option value="track:tokyo-2400">Tokyo 2400 rating</option>
+                <option value="track:kyoto-3000">Kyoto 3000 rating</option>
+                <option value="track:morioka-1600">Morioka 1600 rating</option>
               </select>
             </div>
           </div>
 
           <div class="filter-tabs-row">
-            <button class="filter-tab active" data-filter="all" onclick="setMarketFilter('all')">All (116)</button>
+            <button class="filter-tab active" data-filter="all" onclick="setMarketFilter('all')">All (115)</button>
             <button class="filter-tab" data-filter="available" onclick="setMarketFilter('available')">Available Only</button>
             <button class="filter-tab" data-filter="myteam" onclick="setMarketFilter('myteam')">My Team Umas</button>
           </div>
 
           <div class="catalog-status-bar">
-            <span id="market-counter-text">116 Umas listed</span>
+            <span id="market-counter-text">115 Umas listed</span>
             <div id="market-active-team-hint" class="active-team-hint">
-              Active Buyer: <b id="hint-team-name" style="color:var(--team-red);">🔴 Red Team</b> (Remaining: <span id="hint-team-budget">120</span> 🪙)
+              Active Buyer: <b id="hint-team-name" style="color:var(--team-red);">🔴 Red Team</b> (Remaining: <span id="hint-team-budget">140</span> 🪙)
             </div>
           </div>
 
@@ -456,9 +464,9 @@
             <div class="market-roster-header">
               <div>
                 <span class="team-tag red">🔴 Red Team Umas</span>
-                <span class="roster-budget-tag" id="roster-red-budget">💰 120 🪙</span>
+                <span class="roster-budget-tag" id="roster-red-budget">💰 140 🪙</span>
               </div>
-              <span id="red-uma-count" class="pill-count">0 / 12 Umas</span>
+              <span id="red-uma-count" class="pill-count">0 / 9 Umas</span>
             </div>
             <div id="red-uma-list" class="market-roster-slots"></div>
           </div>
@@ -468,9 +476,9 @@
             <div class="market-roster-header">
               <div>
                 <span class="team-tag blue">🔵 Blue Team Umas</span>
-                <span class="roster-budget-tag" id="roster-blue-budget">💰 120 🪙</span>
+                <span class="roster-budget-tag" id="roster-blue-budget">💰 140 🪙</span>
               </div>
-              <span id="blue-uma-count" class="pill-count">0 / 12 Umas</span>
+              <span id="blue-uma-count" class="pill-count">0 / 9 Umas</span>
             </div>
             <div id="blue-uma-list" class="market-roster-slots"></div>
           </div>
@@ -480,9 +488,9 @@
             <div class="market-roster-header">
               <div>
                 <span class="team-tag yellow">🟡 Yellow Team Umas</span>
-                <span class="roster-budget-tag" id="roster-yellow-budget">💰 120 🪙</span>
+                <span class="roster-budget-tag" id="roster-yellow-budget">💰 140 🪙</span>
               </div>
-              <span id="yellow-uma-count" class="pill-count">0 / 12 Umas</span>
+              <span id="yellow-uma-count" class="pill-count">0 / 9 Umas</span>
             </div>
             <div id="yellow-uma-list" class="market-roster-slots"></div>
           </div>
@@ -513,7 +521,7 @@
           <div>
             <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main);">🏇 Team Player ➔ Uma Pairings</h3>
             <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-muted);">
-              Pair each team member with their designated Uma from their 12 drafted characters. Selecting a player in the race form will automatically lock in their paired Uma!
+              Pair each team member with their designated Uma from their drafted Umas. Selecting a player in the race form will automatically lock in their paired Uma!
             </p>
           </div>
           <button type="button" onclick="renderPlayerUmaPairingsUI()" class="btn btn-outline btn-sm" title="Refresh Pairings List">
@@ -565,7 +573,7 @@
                   <option value="tokyo-2400">👑 Tokyo 2400 (Medium • Turf)</option>
                   <option value="chukyo-1200">⚡ Chukyo 1200 (Sprint • Turf)</option>
                   <option value="sapporo-1500">🏃 Sapporo 1500 (Mile • Turf)</option>
-                  <option value="hakodate-2600">🏔️ Hakodate 2600 (Long • Turf)</option>
+                  <option value="kyoto-3000">🏔️ Kyoto 3000 (Long • Turf)</option>
                   <option value="morioka-1600">🏜️ Morioka 1600 (Dirt • Mile)</option>
                   <option value="other">🏁 Other / Custom Track</option>
                 </select>
@@ -811,6 +819,7 @@
 
   </main>
 
+  <script src="js/uma_scores.js"></script>
   <script src="js/data.js"></script>
   <script src="js/uma_images.js"></script>
   <script src="js/audio.js"></script>

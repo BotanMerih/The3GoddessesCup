@@ -93,10 +93,6 @@ const ALL_UMAS = [
   "TM Opera O",
   "Symboli Rudolf",
   "Rice Shower",
-  "Royce and Royce",
-  "Tsurumaru Tsuyoshi",
-  "Ikuno Dictus",
-  "Biko Pegasus",
   "Matikanetannhauser",
   "Gold Ship",
   "Vodka",
@@ -106,7 +102,6 @@ const ALL_UMAS = [
   "Air Groove",
   "Mayano Top Gun",
   "Super Creek",
-  "Twin Turbo",
   "Mejiro Ryan",
   "Agnes Tachyon",
   "Winning Ticket",
@@ -123,15 +118,74 @@ const POT_3 = [];
 const UMA_POT_MAP = {};
 ALL_UMAS.forEach(u => UMA_POT_MAP[u] = 1);
 
-const TEAM_MAX_BUDGET = 120;
-const UMA_PRICE = 10;
-const MAX_UMAS_PER_TEAM = 12;
+const TEAM_MAX_BUDGET = 140;
+// Every team must draft at least MIN_UMAS_PER_TEAM. MAX_UMAS_PER_TEAM is only a roster cap;
+// it is not used in any budget or reserve calculation.
+const MIN_UMAS_PER_TEAM = 9;
+const MAX_UMAS_PER_TEAM = 18;
+// Per-Uma price comes from js/uma_scores.js (rating-based, 5–24 🪙).
+const MIN_UMA_PRICE = (typeof UMA_SCORE_META !== 'undefined' && UMA_SCORE_META.priceMin) || 5;
+const FALLBACK_UMA_PRICE = (typeof UMA_SCORE_META !== 'undefined' && UMA_SCORE_META.unratedPrice) || 10;
+
+function getUmaPrice(umaName) {
+  const s = (typeof UMA_SCORES !== 'undefined') ? UMA_SCORES[umaName] : null;
+  return s && typeof s.price === 'number' ? s.price : FALLBACK_UMA_PRICE;
+}
+
+function getUmaScore(umaName) {
+  return (typeof UMA_SCORES !== 'undefined' && UMA_SCORES[umaName]) || null;
+}
+
+function getTeamSpent(teamKey) {
+  const team = teams[teamKey];
+  if (!team || !team.umas) return 0;
+  return team.umas.reduce((sum, u) => sum + getUmaPrice(u), 0);
+}
 
 function getTeamBudget(teamKey) {
-  const team = teams[teamKey];
-  if (!team) return 0;
-  const spent = (team.umas ? team.umas.length : 0) * UMA_PRICE;
-  return Math.max(0, TEAM_MAX_BUDGET - spent);
+  if (!teams[teamKey]) return 0;
+  return Math.max(0, TEAM_MAX_BUDGET - getTeamSpent(teamKey));
+}
+
+// Coins this team needs to reach MIN_UMAS_PER_TEAM after buying `umaName`, if it could take
+// the cheapest Umas left in the pool (shown in messages).
+function getRequiredReserve(teamKey, umaName) {
+  const count = teams[teamKey]?.umas?.length || 0;
+  const need = Math.max(0, MIN_UMAS_PER_TEAM - (count + 1));
+  const owned = new Set(TEAM_KEYS.flatMap(t => teams[t]?.umas || []));
+  const cheapest = ALL_UMAS.filter(u => u !== umaName && !owned.has(u)).map(getUmaPrice).sort((a, b) => a - b);
+  return cheapest.slice(0, need).reduce((a, b) => a + b, 0);
+}
+
+// After `teamKey` buys `umaName`, can every team that still needs Umas reach MIN_UMAS_PER_TEAM?
+// Greedy check: the tightest team (fewest coins per missing Uma) takes the cheapest remaining Umas,
+// the next tightest takes the next cheapest, and so on. Blocks purchases that would strand either
+// the buyer or another team below the minimum.
+function isDraftStillFeasible(teamKey, umaName) {
+  const owned = new Set(TEAM_KEYS.flatMap(t => teams[t]?.umas || []));
+  const pool = ALL_UMAS.filter(u => u !== umaName && !owned.has(u)).map(getUmaPrice).sort((a, b) => a - b);
+  const needs = TEAM_KEYS.map(t => {
+    const count = (teams[t]?.umas?.length || 0) + (t === teamKey ? 1 : 0);
+    const budget = getTeamBudget(t) - (t === teamKey ? getUmaPrice(umaName) : 0);
+    return { need: Math.max(0, MIN_UMAS_PER_TEAM - count), budget };
+  }).filter(x => x.need > 0);
+  if (needs.some(x => x.budget < 0)) return false;
+  needs.sort((a, b) => a.budget / a.need - b.budget / b.need);
+  let i = 0;
+  for (const x of needs) {
+    const take = pool.slice(i, i + x.need);
+    if (take.length < x.need) return false;
+    if (take.reduce((a, b) => a + b, 0) > x.budget) return false;
+    i += x.need;
+  }
+  return true;
+}
+
+// Can this team afford this Uma right now without breaking the 9-Uma minimum for anyone?
+function canTeamAffordUma(teamKey, umaName) {
+  if (!teams[teamKey]) return false;
+  if (getTeamBudget(teamKey) < getUmaPrice(umaName)) return false;
+  return isDraftStillFeasible(teamKey, umaName);
 }
 
 const POOL_PACKAGES = {
@@ -155,25 +209,26 @@ function shuffleArray(arr) {
 
 const _initPkgs = shuffleArray(['A', 'B', 'C']);
 
+// Tournament rosters: Team A = Red, Team B = Blue, Team C = Yellow.
 const DEFAULT_FIXED_TEAMS = {
   red: {
     cap: "Captain Red",
-    players: []
+    players: ["kishiyuyu", "nobody_cid", "botanmerih", "kei9445", "satohinalings", "torigoo", "casual", "nesnt", "shirakaminep"]
   },
   blue: {
     cap: "Captain Blue",
-    players: []
+    players: ["soul.93", "rnob", "chqileaf", "himehime", ".swig", "alkopoligami", "vgricka", "mythlols", "patatamoltobella"]
   },
   yellow: {
     cap: "Captain Yellow",
-    players: []
+    players: ["lucycdk", "matikanbenbeki03", "kingggg98", "ionnesxii", "andreadoria", "morton1247", "_cyrus29", "the_real_adocado", "potatosayo"]
   }
 };
 
 let teams = {
-  red:    { name: "Red",    cap: DEFAULT_FIXED_TEAMS.red.cap,    budget: 120, package: _initPkgs[0], players: [], umas: [] },
-  blue:   { name: "Blue",   cap: DEFAULT_FIXED_TEAMS.blue.cap,   budget: 120, package: _initPkgs[1], players: [], umas: [] },
-  yellow: { name: "Yellow", cap: DEFAULT_FIXED_TEAMS.yellow.cap, budget: 120, package: _initPkgs[2], players: [], umas: [] }
+  red:    { name: "Red",    cap: DEFAULT_FIXED_TEAMS.red.cap,    budget: TEAM_MAX_BUDGET, package: _initPkgs[0], players: [...DEFAULT_FIXED_TEAMS.red.players],    umas: [], draftDone: false },
+  blue:   { name: "Blue",   cap: DEFAULT_FIXED_TEAMS.blue.cap,   budget: TEAM_MAX_BUDGET, package: _initPkgs[1], players: [...DEFAULT_FIXED_TEAMS.blue.players],   umas: [], draftDone: false },
+  yellow: { name: "Yellow", cap: DEFAULT_FIXED_TEAMS.yellow.cap, budget: TEAM_MAX_BUDGET, package: _initPkgs[2], players: [...DEFAULT_FIXED_TEAMS.yellow.players], umas: [], draftDone: false }
 };
 
 let availablePot1 = [...ALL_UMAS];
@@ -212,7 +267,7 @@ const DEFAULT_TRACKS = [
     icon: "⚡",
     tagColor: "#10b981",
     accentBg: "#ecfdf5",
-    desc: "Chukyo • Short Distance (Sprint) • Turf • Left Turn"
+    desc: "Chukyo • Short Distance (Sprint) • Turf • Left Turn • Spring · Rainy · Soft"
   },
   {
     id: "sapporo-1500",
@@ -224,7 +279,7 @@ const DEFAULT_TRACKS = [
     icon: "🏃",
     tagColor: "#0284c7",
     accentBg: "#f0f9ff",
-    desc: "Sapporo • Mile Distance • Turf • Right Turn"
+    desc: "Sapporo • Mile Distance • Turf • Right Turn • Summer · Sunny · Firm"
   },
   {
     id: "tokyo-2400",
@@ -236,19 +291,19 @@ const DEFAULT_TRACKS = [
     icon: "👑",
     tagColor: "#7c3aed",
     accentBg: "#f5f3ff",
-    desc: "Tokyo • Medium Distance • Turf (Japan Cup / Derby) • Left Turn"
+    desc: "Tokyo • Medium Distance • Turf (Japan Cup / Derby) • Left Turn • Fall · Cloudy · Firm"
   },
   {
-    id: "hakodate-2600",
-    name: "Hakodate 2600",
+    id: "kyoto-3000",
+    name: "Kyoto 3000",
     category: "Long",
-    distance: "2600m",
+    distance: "3000m",
     surface: "Turf",
     turn: "Right Turn",
     icon: "🏔️",
     tagColor: "#f59e0b",
     accentBg: "#fffbeb",
-    desc: "Hakodate • Long Distance • Turf • Right Turn"
+    desc: "Kyoto • Long Distance • Turf • Right Turn • Winter · Cloudy · Firm"
   },
   {
     id: "morioka-1600",
@@ -260,7 +315,7 @@ const DEFAULT_TRACKS = [
     icon: "🏜️",
     tagColor: "#b45309",
     accentBg: "#fef3c7",
-    desc: "Morioka (Oro Park) • Dirt • Mile Distance • Left Turn"
+    desc: "Morioka (Oro Park) • Dirt • Mile Distance • Left Turn • Spring · Sunny · Firm"
   }
 ];
 
