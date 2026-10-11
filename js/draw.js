@@ -615,7 +615,6 @@ function renderTeamUmaLists(autoscrollTeamKey = null) {
       if (i < list.length) {
         const uma = list[i];
         const price = getUmaPrice(uma);
-        const s = getUmaScore(uma);
         const imageUrl = typeof getUmaImageUrl === 'function' ? getUmaImageUrl(uma) : `assets/umas/trained_chr_icon_1001_100101_02.png`;
         html += `
           <div class="roster-uma-item">
@@ -623,7 +622,6 @@ function renderTeamUmaLists(autoscrollTeamKey = null) {
               <span class="roster-slot-num">${i + 1}</span>
               <img src="${imageUrl}" alt="${uma}" class="roster-uma-avatar" loading="lazy" onerror="this.src='assets/umas/trained_chr_icon_1001_100101_02.png'">
               <span class="roster-uma-name" title="${uma}">${uma}</span>
-              ${s && !s.unrated ? `<span class="roster-uma-rating ${ratingHeat(s.rating)}" title="Rating ${s.rating} / 24">★${s.rating.toFixed(1)}</span>` : ''}
             </div>
             <button class="btn-roster-refund" onclick="sellUmaForTeam('${uma.replace(/'/g, "\\'")}', '${t}')" title="Refund and get ${price} coins back">
               ✕ Refund (+${price} 🪙)

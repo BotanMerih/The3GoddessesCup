@@ -48,8 +48,15 @@ function switchTab(tabNum, save = true) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof resetRacePointInputs === 'function') resetRacePointInputs();
   checkAndLoadStateFromURL();
-  loadStateFromStorage();
+  const hadSave = loadStateFromStorage();
+  if (hadSave) {
+    createBackup('Start of visit');
+    setSaveStatus(true, '✓ Saved data loaded');
+  } else {
+    setSaveStatus(true, '✓ Autosave on');
+  }
 
   if (typeof renderFixedTeamsUI === 'function') renderFixedTeamsUI();
   if (typeof renderTracksUI === 'function') renderTracksUI();

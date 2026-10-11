@@ -1,8 +1,8 @@
 // Otomatik üretildi: uma-puanlama/site-aktar.mjs (2026-10-08). Elle düzenleme; yeniden üretilir.
 // rating = 0.6·avg + 0.4·best. avg: 5 pistin eşit ağırlıklı ortalaması (1–24, koşamadığı pist 1);
 // best: en iyi pist puanı. simPrice: rating'in sırasına göre 5–24 🪙.
-// price: fiyat-elle.json'da varsa oradaki elle fiyat (manualPrice: true), yoksa simPrice; en az 8 🪙.
-const UMA_SCORE_META = {"generated":"2026-10-08","priceMin":8,"priceMax":48,"unratedPrice":15,"specialistWeight":0.4,"tracks":[{"id":"chukyo-1200","name":"Chukyo 1200m","conditions":"Spring · Rainy · Soft"},{"id":"sapporo-1500","name":"Sapporo 1500m","conditions":"Summer · Sunny · Firm"},{"id":"tokyo-2400","name":"Tokyo 2400m","conditions":"Fall · Cloudy · Firm"},{"id":"kyoto-3000","name":"Kyoto 3000m","conditions":"Winter · Cloudy · Firm"},{"id":"morioka-1600","name":"Morioka 1600m","conditions":"Spring · Sunny · Firm"}]};
+// price: fiyat-elle.json'da varsa oradaki elle fiyat (manualPrice: true), yoksa simPrice (en az 8 🪙).
+const UMA_SCORE_META = {"generated":"2026-10-08","priceMin":5,"priceMax":48,"unratedPrice":15,"specialistWeight":0.4,"tracks":[{"id":"chukyo-1200","name":"Chukyo 1200m","conditions":"Spring · Rainy · Soft"},{"id":"sapporo-1500","name":"Sapporo 1500m","conditions":"Summer · Sunny · Firm"},{"id":"tokyo-2400","name":"Tokyo 2400m","conditions":"Fall · Cloudy · Firm"},{"id":"kyoto-3000","name":"Kyoto 3000m","conditions":"Winter · Cloudy · Firm"},{"id":"morioka-1600","name":"Morioka 1600m","conditions":"Spring · Sunny · Firm"}]};
 const UMA_SCORES = {
  "Satono Diamond (New Year)": {
   "id": "106702",
@@ -1557,7 +1557,7 @@ const UMA_SCORES = {
   "best": 23,
   "bestTrack": "kyoto-3000",
   "power": 18.5,
-  "price": 17,
+  "price": 16,
   "simPrice": 22,
   "manualPrice": true,
   "tracks": {
@@ -1793,8 +1793,9 @@ const UMA_SCORES = {
   "best": 16,
   "bestTrack": "tokyo-2400",
   "power": 14,
-  "price": 15,
+  "price": 13,
   "simPrice": 15,
+  "manualPrice": true,
   "tracks": {
    "chukyo-1200": null,
    "sapporo-1500": {
@@ -2949,8 +2950,9 @@ const UMA_SCORES = {
   "best": 7,
   "bestTrack": "morioka-1600",
   "power": 7,
-  "price": 8,
+  "price": 5,
   "simPrice": 5,
+  "manualPrice": true,
   "tracks": {
    "chukyo-1200": null,
    "sapporo-1500": null,

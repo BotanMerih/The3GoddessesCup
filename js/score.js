@@ -1,5 +1,34 @@
 let playerUmaAssignments = {};
 let activeMatchHistoryTrackFilter = 'all';
+// 'all', 'team:<teamKey>' or 'track:<trackId>'
+let leaderboardScope = 'all';
+
+// The single source of truth for placements and their default points.
+const PLACEMENTS = [
+  { key: 'first',  statProp: 'wins',    pts: 10, short: '1st', label: '🥇 1st', podium: true },
+  { key: 'second', statProp: 'seconds', pts: 7,  short: '2nd', label: '🥈 2nd', podium: true },
+  { key: 'third',  statProp: 'thirds',  pts: 5,  short: '3rd', label: '🥉 3rd', podium: true },
+  { key: 'fourth', statProp: 'fourths', pts: 3,  short: '4th', label: '🎖️ 4th', podium: false },
+  { key: 'fifth',  statProp: 'fifths',  pts: 1,  short: '5th', label: '🎖️ 5th', podium: false }
+];
+
+function getDefaultPlacementPts(key) {
+  return PLACEMENTS.find(p => p.key === key)?.pts ?? 0;
+}
+
+// Points actually awarded for a recorded placement (custom value if one was entered).
+function getPlacementPts(pData, key) {
+  return (pData && pData.pts !== undefined && pData.pts !== null && pData.pts !== '') ? Number(pData.pts) : getDefaultPlacementPts(key);
+}
+
+function resetRacePointInputs() {
+  const legend = document.getElementById('placement-points-legend');
+  if (legend) legend.textContent = PLACEMENTS.map(p => `${p.short}=${p.pts}p`).join(', ');
+  PLACEMENTS.forEach(p => {
+    const el = document.getElementById(`race-${p.key}-pts`);
+    if (el) el.value = p.pts;
+  });
+}
 
 function getPlayerUma(playerName) {
   return playerUmaAssignments[playerName] || '';
@@ -71,145 +100,101 @@ function setMatchHistoryTrackFilter(trackId) {
   renderScoringTab();
 }
 
-function calculateScoringStats() {
-  const stats = {
-    red: { points: bonusPoints.red || 0, wins: 0, seconds: 0, thirds: 0, fourths: 0, fifths: 0, totalRaces: 0, podiums: 0 },
-    blue: { points: bonusPoints.blue || 0, wins: 0, seconds: 0, thirds: 0, fourths: 0, fifths: 0, totalRaces: 0, podiums: 0 },
-    yellow: { points: bonusPoints.yellow || 0, wins: 0, seconds: 0, thirds: 0, fourths: 0, fifths: 0, totalRaces: 0, podiums: 0 }
-  };
+function emptyTeamTally() {
+  return { points: 0, wins: 0, seconds: 0, thirds: 0, fourths: 0, fifths: 0, totalRaces: 0, podiums: 0 };
+}
 
-  const playerStats = {};
-  const umaStats = {};
-
-  const trackStats = {};
-  DEFAULT_TRACKS.forEach(dt => {
-    trackStats[dt.id] = {
-      meta: dt,
-      matches: [],
-      teamPoints: { red: 0, blue: 0, yellow: 0 },
-      wins: { red: 0, blue: 0, yellow: 0 },
-      podiums: { red: 0, blue: 0, yellow: 0 }
-    };
-  });
-  trackStats['other'] = {
-    meta: getTrackDisplayMeta('other'),
+function emptyTrackStat(trackId) {
+  return {
+    meta: getTrackDisplayMeta(trackId),
     matches: [],
     teamPoints: { red: 0, blue: 0, yellow: 0 },
     wins: { red: 0, blue: 0, yellow: 0 },
     podiums: { red: 0, blue: 0, yellow: 0 }
   };
+}
+
+function emptyPlayerStat(name, team, assignedUma) {
+  return {
+    name, team, assignedUma,
+    lastUma: '',
+    points: 0, wins: 0, seconds: 0, thirds: 0, fourths: 0, fifths: 0,
+    podiums: 0, top5: 0, races: 0
+  };
+}
+
+// Builds every standings table. With onlyTrackId set, only races on that track are counted
+// and bonus points (which belong to no track) are left out.
+function calculateScoringStats(onlyTrackId = null) {
+  const stats = {};
+  TEAM_KEYS.forEach(t => {
+    stats[t] = emptyTeamTally();
+    if (!onlyTrackId) stats[t].points = bonusPoints[t] || 0;
+  });
+
+  const playerStats = {};
+  // Keyed by team + player + Uma, so the same Uma raced by two players stays separate.
+  const umaStats = {};
+
+  const trackStats = {};
+  DEFAULT_TRACKS.forEach(dt => {
+    trackStats[dt.id] = emptyTrackStat(dt.id);
+    trackStats[dt.id].meta = dt;
+  });
+  trackStats['other'] = emptyTrackStat('other');
 
   TEAM_KEYS.forEach(t => {
     const allMembers = Array.from(new Set([teams[t]?.cap, ...(teams[t]?.players || [])].filter(Boolean)));
     allMembers.forEach(p => {
-      playerStats[p] = {
-        name: p,
-        team: t,
-        assignedUma: getPlayerUma(p),
-        points: 0,
-        wins: 0,
-        seconds: 0,
-        thirds: 0,
-        fourths: 0,
-        fifths: 0,
-        podiums: 0,
-        top5: 0,
-        races: 0
-      };
+      playerStats[p] = emptyPlayerStat(p, t, getPlayerUma(p));
     });
   });
 
-  const placements = [
-    { key: 'first', statProp: 'wins', pts: 10 },
-    { key: 'second', statProp: 'seconds', pts: 7 },
-    { key: 'third', statProp: 'thirds', pts: 5 },
-    { key: 'fourth', statProp: 'fourths', pts: 3 },
-    { key: 'fifth', statProp: 'fifths', pts: 1 }
-  ];
-
   matches.forEach(m => {
-    const countedTeamsInMatch = new Set();
     const tId = getMatchTrackId(m);
+    if (onlyTrackId && tId !== onlyTrackId) return;
+    const countedTeamsInMatch = new Set();
 
-    if (!trackStats[tId]) {
-      trackStats[tId] = {
-        meta: getTrackDisplayMeta(tId),
-        matches: [],
-        teamPoints: { red: 0, blue: 0, yellow: 0 },
-        wins: { red: 0, blue: 0, yellow: 0 },
-        podiums: { red: 0, blue: 0, yellow: 0 }
-      };
-    }
+    if (!trackStats[tId]) trackStats[tId] = emptyTrackStat(tId);
     trackStats[tId].matches.push(m);
     if (m.first && m.first.team) {
       trackStats[tId].wins[m.first.team] = (trackStats[tId].wins[m.first.team] || 0) + 1;
     }
 
-    placements.forEach(({ key, statProp, pts: defaultPts }) => {
+    PLACEMENTS.forEach(({ key, statProp, podium }) => {
       const pData = m[key];
-      if (pData && pData.team && stats[pData.team]) {
-        const pts = (pData.pts !== undefined && pData.pts !== null && pData.pts !== '') ? Number(pData.pts) : defaultPts;
-        stats[pData.team].points += pts;
-        stats[pData.team][statProp] += 1;
-        if (key === 'first' || key === 'second' || key === 'third') {
-          stats[pData.team].podiums += 1;
-        }
-        countedTeamsInMatch.add(pData.team);
+      if (!pData || !pData.team || !stats[pData.team]) return;
+      const pts = getPlacementPts(pData, key);
+      stats[pData.team].points += pts;
+      stats[pData.team][statProp] += 1;
+      if (podium) stats[pData.team].podiums += 1;
+      countedTeamsInMatch.add(pData.team);
 
-        if (trackStats[tId]) {
-          trackStats[tId].teamPoints[pData.team] = (trackStats[tId].teamPoints[pData.team] || 0) + pts;
-          if (key === 'first' || key === 'second' || key === 'third') {
-            trackStats[tId].podiums[pData.team] = (trackStats[tId].podiums[pData.team] || 0) + 1;
-          }
-        }
+      trackStats[tId].teamPoints[pData.team] = (trackStats[tId].teamPoints[pData.team] || 0) + pts;
+      if (podium) trackStats[tId].podiums[pData.team] = (trackStats[tId].podiums[pData.team] || 0) + 1;
 
-        if (pData.player) {
-          if (!playerStats[pData.player]) {
-            playerStats[pData.player] = {
-              name: pData.player,
-              team: pData.team,
-              assignedUma: getPlayerUma(pData.player) || pData.uma || '',
-              points: 0,
-              wins: 0,
-              seconds: 0,
-              thirds: 0,
-              fourths: 0,
-              fifths: 0,
-              podiums: 0,
-              top5: 0,
-              races: 0
-            };
-          }
-          playerStats[pData.player].points += pts;
-          playerStats[pData.player][statProp] += 1;
-          playerStats[pData.player].top5 += 1;
-          playerStats[pData.player].races += 1;
-          if (key === 'first' || key === 'second' || key === 'third') {
-            playerStats[pData.player].podiums += 1;
-          }
-          if (pData.uma && !playerStats[pData.player].assignedUma) {
-            playerStats[pData.player].assignedUma = pData.uma;
-          }
+      if (pData.player) {
+        if (!playerStats[pData.player]) {
+          playerStats[pData.player] = emptyPlayerStat(pData.player, pData.team, getPlayerUma(pData.player));
         }
+        const ps = playerStats[pData.player];
+        ps.points += pts;
+        ps[statProp] += 1;
+        ps.top5 += 1;
+        ps.races += 1;
+        if (podium) ps.podiums += 1;
+        if (pData.uma) ps.lastUma = pData.uma;
+      }
 
-        if (pData.uma) {
-          if (!umaStats[pData.uma]) {
-            umaStats[pData.uma] = {
-              umaName: pData.uma,
-              team: pData.team,
-              player: pData.player || '',
-              points: 0,
-              wins: 0,
-              top5: 0,
-              races: 0
-            };
-          }
-          umaStats[pData.uma].points += pts;
-          if (key === 'first') umaStats[pData.uma].wins += 1;
-          umaStats[pData.uma].top5 += 1;
-          umaStats[pData.uma].races += 1;
-          if (pData.player) umaStats[pData.uma].player = pData.player;
+      if (pData.uma) {
+        const umaKey = `${pData.team}|${pData.player || ''}|${pData.uma}`;
+        if (!umaStats[umaKey]) {
+          umaStats[umaKey] = { umaName: pData.uma, team: pData.team, player: pData.player || '', points: 0, wins: 0, top5: 0, races: 0 };
         }
+        umaStats[umaKey].points += pts;
+        if (key === 'first') umaStats[umaKey].wins += 1;
+        umaStats[umaKey].top5 += 1;
+        umaStats[umaKey].races += 1;
       }
     });
 
@@ -218,7 +203,7 @@ function calculateScoringStats() {
     });
   });
 
-  return { teamStats: stats, playerStats, umaStats, trackStats };
+return { teamStats: stats, playerStats, umaStats, trackStats };
 }
 
 function adjustTeamPoints(teamKey, delta) {
@@ -241,47 +226,47 @@ function recordRaceResult(e) {
   const raceTrack = document.getElementById('race-track-select')?.value || 'tokyo-2400';
   const raceTitle = document.getElementById('race-title-input')?.value.trim() || `Race ${matches.length + 1}`;
   
-  const firstTeam = document.getElementById('race-first-team')?.value;
-  const firstPlayer = document.getElementById('race-first-player')?.value || "";
-  const firstUma = document.getElementById('race-first-uma')?.value || "";
-  const firstPts = parsePointInput('race-first-pts', 10);
+  const entries = {};
+  PLACEMENTS.forEach(p => {
+    entries[p.key] = {
+      team: document.getElementById(`race-${p.key}-team`)?.value || "",
+      player: document.getElementById(`race-${p.key}-player`)?.value || "",
+      uma: document.getElementById(`race-${p.key}-uma`)?.value || "",
+      pts: parsePointInput(`race-${p.key}-pts`, p.pts)
+    };
+  });
 
-  const secondTeam = document.getElementById('race-second-team')?.value;
-  const secondPlayer = document.getElementById('race-second-player')?.value || "";
-  const secondUma = document.getElementById('race-second-uma')?.value || "";
-  const secondPts = parsePointInput('race-second-pts', 7);
-
-  const thirdTeam = document.getElementById('race-third-team')?.value;
-  const thirdPlayer = document.getElementById('race-third-player')?.value || "";
-  const thirdUma = document.getElementById('race-third-uma')?.value || "";
-  const thirdPts = parsePointInput('race-third-pts', 5);
-
-  const fourthTeam = document.getElementById('race-fourth-team')?.value;
-  const fourthPlayer = document.getElementById('race-fourth-player')?.value || "";
-  const fourthUma = document.getElementById('race-fourth-uma')?.value || "";
-  const fourthPts = parsePointInput('race-fourth-pts', 3);
-
-  const fifthTeam = document.getElementById('race-fifth-team')?.value;
-  const fifthPlayer = document.getElementById('race-fifth-player')?.value || "";
-  const fifthUma = document.getElementById('race-fifth-uma')?.value || "";
-  const fifthPts = parsePointInput('race-fifth-pts', 1);
-
-  if (!firstTeam || !secondTeam || !thirdTeam || !fourthTeam || !fifthTeam) {
+  if (PLACEMENTS.some(p => !entries[p.key].team)) {
     alert("Please select the teams for all 1st to 5th placements.");
     return;
   }
 
+  // The same player or the same Uma cannot finish in two places of one race.
+  const conflicts = [];
+  ['player', 'uma'].forEach(field => {
+    const seen = {};
+    PLACEMENTS.forEach(p => {
+      const val = entries[p.key][field];
+      if (!val) return;
+      (seen[val] = seen[val] || []).push(p.short);
+    });
+    Object.entries(seen).forEach(([val, places]) => {
+      if (places.length > 1) conflicts.push(`${field === 'player' ? 'Player' : 'Uma'} "${val}" is entered in ${places.join(' and ')} place.`);
+    });
+  });
+  if (conflicts.length) {
+    alert("This race cannot be recorded:\n\n- " + conflicts.join('\n- ') + "\n\nFix the duplicate entries and try again.");
+    return;
+  }
+
+  const now = new Date();
   const newMatch = {
-    id: 'match_' + Date.now(),
+    id: 'match_' + now.getTime(),
     raceNumber: matches.length + 1,
     trackId: raceTrack,
     title: raceTitle,
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    first: { team: firstTeam, player: firstPlayer, uma: firstUma, pts: firstPts },
-    second: { team: secondTeam, player: secondPlayer, uma: secondUma, pts: secondPts },
-    third: { team: thirdTeam, player: thirdPlayer, uma: thirdUma, pts: thirdPts },
-    fourth: { team: fourthTeam, player: fourthPlayer, uma: fourthUma, pts: fourthPts },
-    fifth: { team: fifthTeam, player: fifthPlayer, uma: fifthUma, pts: fifthPts }
+    timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    ...entries
   };
 
   matches.push(newMatch);
@@ -298,6 +283,8 @@ function recordRaceResult(e) {
 
 function deleteMatch(matchId) {
   if (!confirm("Are you sure you want to delete this race result?")) return;
+  saveStateToStorage();
+  createBackup('Before deleting a race');
   matches = matches.filter(m => m.id !== matchId);
   matches.forEach((m, idx) => {
     m.raceNumber = idx + 1;
@@ -307,12 +294,15 @@ function deleteMatch(matchId) {
 }
 
 function resetTournamentScores() {
-  if (!confirm("Are you sure you want to reset all match results and scores?")) return;
+  if (!confirm("Are you sure you want to reset all match results and scores?\n\nYour current data will be backed up first (see Backups).")) return;
+  saveStateToStorage();
+  createBackup('Before resetting scores');
   matches = [];
   bonusPoints = { red: 0, blue: 0, yellow: 0 };
   if (document.getElementById('race-title-input')) {
     document.getElementById('race-title-input').value = "Race 1";
   }
+  resetRacePointInputs();
   renderScoringTab();
   saveStateToStorage();
 }
@@ -496,26 +486,11 @@ function renderScoringTab() {
           </div>
 
           <div class="score-stats-grid-5">
+            ${PLACEMENTS.map(p => `
             <div class="score-stat-box">
-              <span class="stat-num">${st.wins}</span>
-              <span class="stat-title">1st (10p)</span>
-            </div>
-            <div class="score-stat-box">
-              <span class="stat-num">${st.seconds}</span>
-              <span class="stat-title">2nd (7p)</span>
-            </div>
-            <div class="score-stat-box">
-              <span class="stat-num">${st.thirds}</span>
-              <span class="stat-title">3rd (5p)</span>
-            </div>
-            <div class="score-stat-box">
-              <span class="stat-num">${st.fourths}</span>
-              <span class="stat-title">4th (3p)</span>
-            </div>
-            <div class="score-stat-box">
-              <span class="stat-num">${st.fifths}</span>
-              <span class="stat-title">5th (1p)</span>
-            </div>
+              <span class="stat-num">${st[p.statProp]}</span>
+              <span class="stat-title">${p.short} (${p.pts}p)</span>
+            </div>`).join('')}
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px; color:var(--text-muted); padding:4px 0; border-top:1px dashed #ebdcc5;">
@@ -542,7 +517,7 @@ function renderScoringTab() {
 
   renderPlayerUmaPairingsUI();
 
-  ['first', 'second', 'third', 'fourth', 'fifth'].forEach(p => {
+  PLACEMENTS.forEach(({ key: p }) => {
     const teamSelect = document.getElementById(`race-${p}-team`);
     const playerSelect = document.getElementById(`race-${p}-player`);
     const umaSelect = document.getElementById(`race-${p}-uma`);
@@ -563,20 +538,90 @@ function renderScoringTab() {
   renderTrackPointsMatrix(trackStats);
   renderMatchHistoryList(matches, trackStats);
 
+  renderScopedLeaderboard();
+}
+
+function teamEmoji(t) {
+  return t === 'red' ? '🔴' : t === 'blue' ? '🔵' : '🟡';
+}
+
+function setLeaderboardScope(scope) {
+  leaderboardScope = scope;
+  renderScopedLeaderboard();
+}
+
+function parseLeaderboardScope() {
+  const [kind, id] = leaderboardScope.split(':');
+  if (kind === 'team' && TEAM_KEYS.includes(id)) return { kind, id };
+  if (kind === 'track' && (DEFAULT_TRACKS.some(t => t.id === id) || id === 'other')) return { kind, id };
+  return { kind: 'all', id: null };
+}
+
+// Player and Uma leaderboards for the whole tournament, one team, or one track.
+function renderScopedLeaderboard() {
+  const scope = parseLeaderboardScope();
+  const { teamStats, playerStats, umaStats } = calculateScoringStats(scope.kind === 'track' ? scope.id : null);
+
+  const tabsEl = document.getElementById('leaderboard-scope-tabs');
+  if (tabsEl) {
+    const raceCount = id => matches.filter(m => getMatchTrackId(m) === id).length;
+    const tabs = [
+      { scope: 'all', label: '🌐 Overall' },
+      ...TEAM_KEYS.map(t => ({ scope: `team:${t}`, label: `${teamEmoji(t)} ${teams[t]?.name || t}` })),
+      ...DEFAULT_TRACKS.map(t => ({ scope: `track:${t.id}`, label: `${t.icon} ${t.name} (${raceCount(t.id)})` }))
+    ];
+    if (raceCount('other') > 0) tabs.push({ scope: 'track:other', label: `🏁 Custom (${raceCount('other')})` });
+    const active = scope.kind === 'all' ? 'all' : `${scope.kind}:${scope.id}`;
+    tabsEl.innerHTML = tabs.map(tab => `
+      <button type="button" class="track-filter-btn ${tab.scope === active ? 'active' : ''}" onclick="setLeaderboardScope('${tab.scope}')">${tab.label}</button>
+    `).join('');
+  }
+
+  let scopeTitle = 'Whole tournament';
+  if (scope.kind === 'team') scopeTitle = `${teamEmoji(scope.id)} ${teams[scope.id]?.name || scope.id} Team`;
+  if (scope.kind === 'track') {
+    const meta = getTrackDisplayMeta(scope.id);
+    scopeTitle = `${meta.icon} ${meta.name}`;
+  }
+
+  const summaryEl = document.getElementById('leaderboard-scope-summary');
+  if (summaryEl) {
+    if (scope.kind === 'all') {
+      summaryEl.innerHTML = '';
+    } else if (scope.kind === 'team') {
+      const st = teamStats[scope.id];
+      const bonus = bonusPoints[scope.id] || 0;
+      summaryEl.innerHTML = `
+        <div class="lb-summary-pill ${scope.id}"><b>${st.points}</b> pts total${bonus ? ` (incl. ${bonus > 0 ? '+' : ''}${bonus} bonus)` : ''}</div>
+        <div class="lb-summary-pill">🏁 <b>${st.totalRaces}</b> races</div>
+        <div class="lb-summary-pill">🥇 <b>${st.wins}</b> wins</div>
+        <div class="lb-summary-pill">🏆 <b>${st.podiums}</b> podiums</div>`;
+    } else {
+      const ranked = [...TEAM_KEYS].sort((a, b) => teamStats[b].points - teamStats[a].points || teamStats[b].wins - teamStats[a].wins);
+      summaryEl.innerHTML = `<span class="lb-summary-label">Team points on this track (no bonus):</span>` + ranked.map(t => `
+        <div class="lb-summary-pill ${t}">${teamEmoji(t)} ${teams[t]?.name || t}: <b>${teamStats[t].points}p</b> · ${teamStats[t].wins}W</div>`).join('');
+    }
+  }
+
   const playerRosterTable = document.getElementById('player-leaderboard-body');
   if (playerRosterTable) {
-    const sortedPlayers = Object.values(playerStats).sort((a, b) => {
+    let rows = Object.values(playerStats);
+    if (scope.kind === 'team') rows = rows.filter(p => p.team === scope.id);
+    if (scope.kind === 'track') rows = rows.filter(p => p.races > 0);
+    rows.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.wins !== a.wins) return b.wins - a.wins;
       return b.podiums - a.podiums;
     });
 
-    if (sortedPlayers.length === 0) {
-      playerRosterTable.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--text-muted);">No player data found. Check team rosters in Tab 1.</td></tr>`;
+    if (rows.length === 0) {
+      const msg = scope.kind === 'track' ? 'No races recorded on this track yet.' : 'No player data found. Check team rosters in Tab 1.';
+      playerRosterTable.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--text-muted);">${msg}</td></tr>`;
     } else {
-      playerRosterTable.innerHTML = sortedPlayers.map((p, idx) => {
-        const pairedUma = p.assignedUma || getPlayerUma(p.name);
-        const umaImg = pairedUma && typeof getUmaImageUrl === 'function' ? getUmaImageUrl(pairedUma) : '';
+      playerRosterTable.innerHTML = rows.map((p, idx) => {
+        // On a track board show the Uma actually raced there; elsewhere the paired Uma.
+        const shownUma = scope.kind === 'track' ? (p.lastUma || p.assignedUma) : (p.assignedUma || getPlayerUma(p.name) || p.lastUma);
+        const umaImg = shownUma && typeof getUmaImageUrl === 'function' ? getUmaImageUrl(shownUma) : '';
         const podiumPct = p.races > 0 ? Math.round((p.podiums / p.races) * 100) : 0;
         const isCap = (p.name === teams[p.team]?.cap);
 
@@ -587,10 +632,10 @@ function renderScoringTab() {
               ${isCap ? '👑 ' : ''}${p.name}
             </td>
             <td>
-              ${pairedUma ? `
+              ${shownUma ? `
                 <div style="display:flex; align-items:center; gap:6px;">
-                  <img src="${umaImg}" alt="${pairedUma}" class="uma-mini-thumb" onerror="this.style.display='none'">
-                  <span style="font-weight:700; font-size:12px;">${pairedUma}</span>
+                  <img src="${umaImg}" alt="${shownUma}" class="uma-mini-thumb" onerror="this.style.display='none'">
+                  <span style="font-weight:700; font-size:12px;">${shownUma}</span>
                 </div>
               ` : `
                 <span style="color:var(--text-faint); font-size:11px; font-style:italic;">None Paired</span>
@@ -611,9 +656,16 @@ function renderScoringTab() {
     }
   }
 
+  const mvpTitle = document.getElementById('uma-mvp-title');
+  if (mvpTitle) mvpTitle.textContent = `🏇 Top Performing Uma Musumes · ${scopeTitle}`;
+  const playerTitle = document.getElementById('player-leaderboard-title');
+  if (playerTitle) playerTitle.textContent = `👤 Player & Uma Leaderboard · ${scopeTitle}`;
+
   const mvpContainer = document.getElementById('uma-mvp-cards-container');
   if (mvpContainer) {
-    const sortedUmas = Object.values(umaStats).sort((a, b) => {
+    let umaRows = Object.values(umaStats);
+    if (scope.kind === 'team') umaRows = umaRows.filter(u => u.team === scope.id);
+    const sortedUmas = umaRows.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       return b.wins - a.wins;
     }).slice(0, 5);
@@ -621,15 +673,14 @@ function renderScoringTab() {
     if (sortedUmas.length === 0) {
       mvpContainer.innerHTML = `
         <div style="grid-column: 1 / -1; text-align:center; padding:18px; color:var(--text-muted); font-size:12px;">
-          Record race matches to see the top performing Uma Musumes on this MVP board.
+          ${scope.kind === 'all' ? 'Record race matches to see the top performing Uma Musumes on this MVP board.' : 'No Uma results for this selection yet.'}
         </div>
       `;
     } else {
       mvpContainer.innerHTML = sortedUmas.map((u, idx) => {
         const img = typeof getUmaImageUrl === 'function' ? getUmaImageUrl(u.umaName) : '';
         const rankMedal = idx === 0 ? '👑 1st MVP' : idx === 1 ? '🥈 2nd' : idx === 2 ? '🥉 3rd' : `#${idx + 1}`;
-        const teamObj = teams[u.team];
-        const teamName = teamObj?.name || u.team;
+        const teamName = teams[u.team]?.name || u.team;
 
         return `
           <div class="mvp-card ${idx === 0 ? 'rank-1' : ''}">
@@ -871,10 +922,9 @@ function renderMatchHistoryList(matches, trackStats) {
         </div>
 
         <div class="match-placements-grid-5">
-          ${['first', 'second', 'third', 'fourth', 'fifth'].map(pos => {
+          ${PLACEMENTS.map(({ key: pos, label }) => {
             const data = m[pos];
-            const pts = data?.pts !== undefined ? data.pts : (pos === 'first' ? 10 : pos === 'second' ? 7 : pos === 'third' ? 5 : pos === 'fourth' ? 3 : 1);
-            const label = pos === 'first' ? '🥇 1st' : pos === 'second' ? '🥈 2nd' : pos === 'third' ? '🥉 3rd' : pos === 'fourth' ? '🎖️ 4th' : '🎖️ 5th';
+            const pts = getPlacementPts(data, pos);
             const imgUrl = data?.uma && typeof getUmaImageUrl === 'function' ? getUmaImageUrl(data.uma) : '';
 
             return `

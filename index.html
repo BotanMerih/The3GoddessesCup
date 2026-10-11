@@ -44,6 +44,9 @@
       <button onclick="triggerImportTournamentFile()" class="btn btn-outline btn-sm" title="Load backup save file (.json)">
         📂 Import Save
       </button>
+      <button onclick="openBackupsPanel()" class="btn btn-outline btn-sm" title="Restore an earlier automatic or manual backup">
+        🕘 Backups
+      </button>
       <input type="file" id="tournament-file-input" accept=".json" style="display:none;" onchange="importTournamentSaveFile(event)">
       <button onclick="resetFullTournament()" class="btn btn-outline btn-sm" style="color:var(--team-red);"
         title="Reset all data and start a new tournament">
@@ -307,7 +310,7 @@
       <div class="uma-market-hero">
         <div class="market-hero-info">
           <h2>🛍️ Stage 3: 3 Goddesses Uma Market</h2>
-          <p>Each team has a <b>140 🪙 budget</b>. Each Uma has its own price (<b>8 to 48 🪙</b>). Every team must draft <b>at least 9 Umas</b> (up to 18).</p>
+          <p>Each team has a <b>135 🪙 budget</b>. Each Uma has its own price (<b>5 to 48 🪙</b>). Every team must draft <b>at least 9 Umas</b> (up to 18).</p>
         </div>
         <div class="market-hero-actions">
           <button onclick="resetUmaPools()" class="btn btn-outline" style="color:var(--team-red);" title="Reset all selections and refund all coins">
@@ -361,8 +364,8 @@
           </div>
           <div class="budget-stat-row">
             <div class="budget-amount">
-              <span class="budget-val" id="red-budget-val">140</span>
-              <span class="budget-max">/ 140 🪙</span>
+              <span class="budget-val" id="red-budget-val">135</span>
+              <span class="budget-max">/ 135 🪙</span>
             </div>
             <div class="uma-count-badge" id="red-uma-count-badge">0 / 9 Umas</div>
           </div>
@@ -380,8 +383,8 @@
           </div>
           <div class="budget-stat-row">
             <div class="budget-amount">
-              <span class="budget-val" id="blue-budget-val">140</span>
-              <span class="budget-max">/ 140 🪙</span>
+              <span class="budget-val" id="blue-budget-val">135</span>
+              <span class="budget-max">/ 135 🪙</span>
             </div>
             <div class="uma-count-badge" id="blue-uma-count-badge">0 / 9 Umas</div>
           </div>
@@ -399,8 +402,8 @@
           </div>
           <div class="budget-stat-row">
             <div class="budget-amount">
-              <span class="budget-val" id="yellow-budget-val">140</span>
-              <span class="budget-max">/ 140 🪙</span>
+              <span class="budget-val" id="yellow-budget-val">135</span>
+              <span class="budget-max">/ 135 🪙</span>
             </div>
             <div class="uma-count-badge" id="yellow-uma-count-badge">0 / 9 Umas</div>
           </div>
@@ -448,7 +451,7 @@
           <div class="catalog-status-bar">
             <span id="market-counter-text">115 Umas listed</span>
             <div id="market-active-team-hint" class="active-team-hint">
-              Active Buyer: <b id="hint-team-name" style="color:var(--team-red);">🔴 Red Team</b> (Remaining: <span id="hint-team-budget">140</span> 🪙)
+              Active Buyer: <b id="hint-team-name" style="color:var(--team-red);">🔴 Red Team</b> (Remaining: <span id="hint-team-budget">135</span> 🪙)
             </div>
           </div>
 
@@ -464,7 +467,7 @@
             <div class="market-roster-header">
               <div>
                 <span class="team-tag red">🔴 Red Team Umas</span>
-                <span class="roster-budget-tag" id="roster-red-budget">💰 140 🪙</span>
+                <span class="roster-budget-tag" id="roster-red-budget">💰 135 🪙</span>
               </div>
               <span id="red-uma-count" class="pill-count">0 / 9 Umas</span>
             </div>
@@ -476,7 +479,7 @@
             <div class="market-roster-header">
               <div>
                 <span class="team-tag blue">🔵 Blue Team Umas</span>
-                <span class="roster-budget-tag" id="roster-blue-budget">💰 140 🪙</span>
+                <span class="roster-budget-tag" id="roster-blue-budget">💰 135 🪙</span>
               </div>
               <span id="blue-uma-count" class="pill-count">0 / 9 Umas</span>
             </div>
@@ -488,7 +491,7 @@
             <div class="market-roster-header">
               <div>
                 <span class="team-tag yellow">🟡 Yellow Team Umas</span>
-                <span class="roster-budget-tag" id="roster-yellow-budget">💰 140 🪙</span>
+                <span class="roster-budget-tag" id="roster-yellow-budget">💰 135 🪙</span>
               </div>
               <span id="yellow-uma-count" class="pill-count">0 / 9 Umas</span>
             </div>
@@ -504,7 +507,7 @@
       <div class="score-hero">
         <div class="score-hero-info">
           <h2>🏆 Stage 4: Tournament Scoring & Leaderboard</h2>
-          <p>Record top 5 race placements (1st=10p, 2nd=7p, 3rd=5p, 4th=3p, 5th=1p) and monitor live team and player standings.</p>
+          <p>Record top 5 race placements (<span id="placement-points-legend"></span>) and monitor live team and player standings.</p>
         </div>
         <div class="score-hero-actions">
           <button onclick="resetTournamentScores()" class="btn btn-outline btn-sm" style="color:var(--team-red);">
@@ -586,7 +589,7 @@
                 <span class="placement-tag first">🥇 1st Place</span>
                 <div class="pts-input-wrap">
                   <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
-                  <input id="race-first-pts" type="number" value="10" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                  <input id="race-first-pts" type="number" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
                 </div>
               </div>
               <div class="placement-fields">
@@ -622,7 +625,7 @@
                 <span class="placement-tag second">🥈 2nd Place</span>
                 <div class="pts-input-wrap">
                   <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
-                  <input id="race-second-pts" type="number" value="7" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                  <input id="race-second-pts" type="number" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
                 </div>
               </div>
               <div class="placement-fields">
@@ -658,7 +661,7 @@
                 <span class="placement-tag third">🥉 3rd Place</span>
                 <div class="pts-input-wrap">
                   <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
-                  <input id="race-third-pts" type="number" value="5" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                  <input id="race-third-pts" type="number" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
                 </div>
               </div>
               <div class="placement-fields">
@@ -694,7 +697,7 @@
                 <span class="placement-tag fourth">🎖️ 4th Place</span>
                 <div class="pts-input-wrap">
                   <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
-                  <input id="race-fourth-pts" type="number" value="3" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                  <input id="race-fourth-pts" type="number" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
                 </div>
               </div>
               <div class="placement-fields">
@@ -730,7 +733,7 @@
                 <span class="placement-tag fifth">🎖️ 5th Place</span>
                 <div class="pts-input-wrap">
                   <label class="lbl" style="margin:0; font-size:11px;">Points:</label>
-                  <input id="race-fifth-pts" type="number" value="1" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
+                  <input id="race-fifth-pts" type="number" min="0" max="99" style="width:55px; padding:4px 6px; font-weight:800; text-align:center;">
                 </div>
               </div>
               <div class="placement-fields">
@@ -781,10 +784,12 @@
       <div class="card" style="margin-top:24px;">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <span class="card-title">👤 Detailed Player & Uma Performance Leaderboard</span>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Complete breakdown of races, podiums, finishes, and point contributions per player and their paired Uma.</div>
+            <span class="card-title" id="player-leaderboard-title">👤 Player & Uma Leaderboard</span>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Pick the whole tournament, one team, or one track. The Uma MVP board below follows the same selection.</div>
           </div>
         </div>
+        <div id="leaderboard-scope-tabs" class="track-filter-tabs-row" style="margin: 0 0 10px 0;"></div>
+        <div id="leaderboard-scope-summary" class="lb-summary-row"></div>
         <div class="table-responsive" style="overflow-x:auto;">
           <table class="scoring-player-table">
             <thead>
@@ -811,7 +816,7 @@
       
       <div class="card" style="margin-top:24px;">
         <div class="card-header">
-          <span class="card-title">🏇 Top Performing Uma Musumes (Tournament MVP Board)</span>
+          <span class="card-title" id="uma-mvp-title">🏇 Top Performing Uma Musumes</span>
         </div>
         <div id="uma-mvp-cards-container" class="mvp-grid-5"></div>
       </div>

@@ -118,7 +118,7 @@ const POT_3 = [];
 const UMA_POT_MAP = {};
 ALL_UMAS.forEach(u => UMA_POT_MAP[u] = 1);
 
-const TEAM_MAX_BUDGET = 140;
+const TEAM_MAX_BUDGET = 135;
 // Every team must draft at least MIN_UMAS_PER_TEAM. MAX_UMAS_PER_TEAM is only a roster cap;
 // it is not used in any budget or reserve calculation.
 const MIN_UMAS_PER_TEAM = 9;
