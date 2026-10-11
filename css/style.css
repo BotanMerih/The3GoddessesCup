@@ -3297,3 +3297,185 @@ label.lbl {
 .lb-summary-pill.red { background: var(--team-red-light); border-color: var(--team-red-border); color: var(--team-red); }
 .lb-summary-pill.blue { background: var(--team-blue-light); border-color: var(--team-blue-border); color: var(--team-blue); }
 .lb-summary-pill.yellow { background: var(--team-yellow-light); border-color: var(--team-yellow-border); color: var(--team-yellow); }
+
+/* ---------- Race form: edit mode & tips ---------- */
+.race-form-tip { margin: 0 0 12px; font-size: 11px; color: var(--text-muted); }
+.race-edit-banner {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--team-yellow-light);
+  border: 1px solid var(--team-yellow-border);
+  color: var(--team-yellow);
+  font-size: 12px;
+  font-weight: 800;
+}
+#record-race-form.editing { outline: 2px dashed var(--team-yellow-border); outline-offset: 6px; border-radius: var(--radius-sm); }
+.match-history-card.editing { outline: 2px solid var(--team-yellow); }
+.match-edited-tag {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+.btn-edit-match {
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-edit-match:hover { background: var(--bg-alt); }
+
+/* ---------- Undo toast ---------- */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  z-index: 950;
+  display: none;
+  align-items: center;
+  gap: 14px;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: #2b231a;
+  color: #faf3e3;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--card-shadow-hover);
+}
+.undo-toast.open { display: flex; }
+.undo-toast button {
+  border: none;
+  background: #f59e0b;
+  color: #2b231a;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ---------- Track progress ---------- */
+.track-progress-row { margin: 4px 0 16px; }
+.track-progress-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.track-progress-total { font-size: 13px; color: var(--text-main); }
+.track-progress-setting { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.track-progress-setting input { width: 56px; padding: 4px 6px; text-align: center; font-weight: 800; }
+.track-progress-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.track-progress-chip {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-main);
+  cursor: pointer;
+}
+.track-progress-chip.done { background: #e7f6ee; border-color: #9fd8b8; color: #047857; }
+.track-progress-chip.next { background: var(--team-yellow-light); border-color: var(--team-yellow); color: var(--team-yellow); font-weight: 800; }
+
+/* ---------- Viewer mode (read-only link) ---------- */
+.viewer-banner {
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--team-blue);
+  background: var(--team-blue-light);
+  border-bottom: 1px solid var(--team-blue-border);
+}
+.viewer-mode .header-right > .btn,
+.viewer-mode #nav-btn-1,
+.viewer-mode #nav-btn-2,
+.viewer-mode #nav-btn-3,
+.viewer-mode .edit-only,
+.viewer-mode .score-quick-adjust,
+.viewer-mode .btn-track-action,
+.viewer-mode .pairings-header .btn,
+.viewer-mode .scoring-two-col > .card:first-child,
+.viewer-mode #save-status { display: none !important; }
+.viewer-mode .scoring-two-col { grid-template-columns: 1fr; }
+.viewer-mode .pairing-select { pointer-events: none; appearance: none; -webkit-appearance: none; }
+
+/* ---------- Presentation mode ---------- */
+.present-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: none;
+  flex-direction: column;
+  gap: 2.5vh;
+  padding: 3vh 3vw;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--text-main);
+}
+.present-overlay.open { display: flex; }
+.present-top { display: flex; align-items: center; gap: 16px; }
+.present-brand { font-size: clamp(20px, 3vw, 40px); font-weight: 900; }
+.present-meta { flex: 1; font-size: clamp(13px, 1.4vw, 20px); color: var(--text-muted); font-weight: 700; }
+.present-close {
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-main);
+}
+.present-teams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2vw; }
+.present-team {
+  border-radius: var(--radius-lg);
+  padding: 2.5vh 2vw;
+  background: var(--card-bg);
+  border: 2px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  text-align: center;
+}
+.present-team.red { border-color: var(--team-red-border); background: var(--team-red-light); }
+.present-team.blue { border-color: var(--team-blue-border); background: var(--team-blue-light); }
+.present-team.yellow { border-color: var(--team-yellow-border); background: var(--team-yellow-light); }
+.present-team-rank { font-size: clamp(24px, 3.5vw, 52px); }
+.present-team-name { font-size: clamp(16px, 2vw, 30px); font-weight: 900; }
+.present-team.red .present-team-name, .present-team.red .present-team-pts { color: var(--team-red); }
+.present-team.blue .present-team-name, .present-team.blue .present-team-pts { color: var(--team-blue); }
+.present-team.yellow .present-team-name, .present-team.yellow .present-team-pts { color: var(--team-yellow); }
+.present-team-pts { font-size: clamp(40px, 7vw, 110px); font-weight: 900; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.present-team-pts span { font-size: 0.3em; margin-left: 6px; font-weight: 800; }
+.present-team-sub { font-size: clamp(12px, 1.2vw, 18px); color: var(--text-muted); font-weight: 700; }
+.present-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; }
+.present-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 2vh 1.5vw;
+  box-shadow: var(--card-shadow);
+}
+.present-panel-title { font-size: clamp(14px, 1.5vw, 22px); font-weight: 900; margin-bottom: 1vh; }
+.present-row { display: flex; align-items: center; gap: 12px; padding: 0.8vh 0; border-top: 1px dashed var(--border-subtle); }
+.present-row:first-of-type { border-top: none; }
+.present-row-rank { width: 2.2em; font-size: clamp(14px, 1.5vw, 22px); font-weight: 900; text-align: center; }
+.present-row-img { width: clamp(32px, 3vw, 48px); height: clamp(32px, 3vw, 48px); border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.present-row-name { flex: 1; min-width: 0; font-size: clamp(14px, 1.5vw, 22px); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.present-row-name small { display: block; font-size: 0.6em; font-weight: 600; color: var(--text-muted); }
+.present-row-team { font-size: 20px; }
+.present-row-team.red { color: var(--team-red); }
+.present-row-team.blue { color: var(--team-blue); }
+.present-row-team.yellow { color: var(--team-yellow); }
+.present-row-pts { font-size: clamp(16px, 1.8vw, 26px); font-weight: 900; color: #b45309; font-variant-numeric: tabular-nums; }
+.present-empty { padding: 2vh 0; text-align: center; color: var(--text-faint); font-size: 14px; }
+@media (max-width: 720px) {
+  .present-teams, .present-bottom { grid-template-columns: 1fr; }
+}

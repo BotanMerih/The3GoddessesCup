@@ -1,7 +1,12 @@
 let playerUmaAssignments = {};
 let activeMatchHistoryTrackFilter = 'all';
-// 'all', 'team:<teamKey>' or 'track:<trackId>'
-let leaderboardScope = 'all';
+// How many races each scheduled track should get (saved with the tournament).
+let racesPerTrack = 1;
+// 'all', 'team:<teamKey>' or 'track:<trackId>'. Remembered per browser, not part of the tournament save.
+const LEADERBOARD_SCOPE_KEY = 'UMA_3GODDESSES_LB_SCOPE';
+let leaderboardScope = (() => {
+  try { return localStorage.getItem(LEADERBOARD_SCOPE_KEY) || 'all'; } catch (e) { return 'all'; }
+})();
 
 // The single source of truth for placements and their default points.
 const PLACEMENTS = [
@@ -28,6 +33,20 @@ function resetRacePointInputs() {
     const el = document.getElementById(`race-${p.key}-pts`);
     if (el) el.value = p.pts;
   });
+}
+
+// Drops pairings whose Uma is no longer on the player's team (refunded, draft reset)
+// or whose player left every roster. Returns true if anything was removed.
+function prunePlayerUmaAssignments() {
+  let changed = false;
+  Object.keys(playerUmaAssignments).forEach(player => {
+    const team = getPlayerTeam(player);
+    if (!team || !(teams[team]?.umas || []).includes(playerUmaAssignments[player])) {
+      delete playerUmaAssignments[player];
+      changed = true;
+    }
+  });
+  return changed;
 }
 
 function getPlayerUma(playerName) {
@@ -202,8 +221,7 @@ function calculateScoringStats(onlyTrackId = null) {
       stats[t].totalRaces += 1;
     });
   });
-
-return { teamStats: stats, playerStats, umaStats, trackStats };
+  return { teamStats: stats, playerStats, umaStats, trackStats };
 }
 
 function adjustTeamPoints(teamKey, delta) {
@@ -220,12 +238,180 @@ function parsePointInput(id, fallback) {
   return isNaN(val) ? fallback : val;
 }
 
+// ---------- Track progress ----------
+
+// Tracks in play: the picked tracks in pick order, or every track if none were picked yet.
+function getScheduledTrackIds() {
+  const picked = typeof getPickedTournamentTracks === 'function' ? getPickedTournamentTracks() : [];
+  return picked.length ? picked.map(t => t.trackId) : DEFAULT_TRACKS.map(t => t.id);
+}
+
+function getTrackRaceCount(trackId) {
+  return matches.filter(m => getMatchTrackId(m) === trackId).length;
+}
+
+// The first scheduled track that still needs races, or null when every track is done.
+function getNextTrackId() {
+  const target = Math.max(1, racesPerTrack || 1);
+  return getScheduledTrackIds().find(id => getTrackRaceCount(id) < target) || null;
+}
+
+function setRacesPerTrack(val) {
+  const n = parseInt(val, 10);
+  racesPerTrack = isNaN(n) ? 1 : Math.min(20, Math.max(1, n));
+  renderScoringTab();
+  saveStateToStorage();
+}
+
+// Points the form at the next track that still needs races (not while editing).
+function selectNextTrackInForm() {
+  if (editingMatchId) return;
+  const next = getNextTrackId();
+  if (!next) return;
+  const trackSelect = document.getElementById('race-track-select');
+  if (trackSelect) trackSelect.value = next;
+  const titleInput = document.getElementById('race-title-input');
+  if (titleInput) titleInput.value = `Race ${matches.length + 1} - ${getTrackDisplayMeta(next).name}`;
+}
+
+function renderTrackProgress() {
+  const el = document.getElementById('track-progress-row');
+  if (!el) return;
+  const target = Math.max(1, racesPerTrack || 1);
+  const next = getNextTrackId();
+  const ids = getScheduledTrackIds();
+  const done = ids.reduce((n, id) => n + Math.min(target, getTrackRaceCount(id)), 0);
+  const total = ids.length * target;
+
+  el.innerHTML = `
+    <div class="track-progress-head">
+      <span class="track-progress-total">🏁 ${done} / ${total} races played${next ? ` · Next: <b>${getTrackDisplayMeta(next).icon} ${getTrackDisplayMeta(next).name}</b>` : ' · <b>All tracks complete ✓</b>'}</span>
+      <label class="track-progress-setting edit-only">Races per track
+        <input type="number" min="1" max="20" value="${target}" onchange="setRacesPerTrack(this.value)">
+      </label>
+    </div>
+    <div class="track-progress-chips">
+      ${ids.map(id => {
+        const meta = getTrackDisplayMeta(id);
+        const count = getTrackRaceCount(id);
+        const state = count >= target ? 'done' : (id === next ? 'next' : '');
+        return `<button type="button" class="track-progress-chip ${state}" onclick="selectTrackForNewRace('${id}')" title="${count} of ${target} races played on ${meta.name}">
+          ${meta.icon} ${meta.name} <b>${count}/${target}</b>${state === 'done' ? ' ✓' : ''}</button>`;
+      }).join('')}
+    </div>`;
+}
+
+// ---------- Undo ----------
+
+let pendingUndo = null;
+let undoTimer = null;
+
+// Remembers the race list before a change and offers to put it back for a few seconds.
+function offerUndo(message, matchesBefore) {
+  pendingUndo = { matches: matchesBefore };
+  let toast = document.getElementById('undo-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'undo-toast';
+    toast.className = 'undo-toast';
+    toast.setAttribute('role', 'status');
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span>${message}</span><button type="button" onclick="undoLastScoreChange()">↩ Undo</button>`;
+  toast.classList.add('open');
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndoToast, 10000);
+}
+
+function hideUndoToast() {
+  pendingUndo = null;
+  document.getElementById('undo-toast')?.classList.remove('open');
+}
+
+function undoLastScoreChange() {
+  if (!pendingUndo) return;
+  matches = JSON.parse(pendingUndo.matches);
+  hideUndoToast();
+  if (editingMatchId) cancelEditMatch();
+  renderScoringTab();
+  selectNextTrackInForm();
+  saveStateToStorage();
+}
+
+// ---------- Race form: record / edit ----------
+
+let editingMatchId = null;
+
+function clearRaceForm() {
+  PLACEMENTS.forEach(p => {
+    const teamSelect = document.getElementById(`race-${p.key}-team`);
+    if (teamSelect) teamSelect.value = '';
+    populateTeamMemberSelect('', document.getElementById(`race-${p.key}-player`));
+    const umaSelect = document.getElementById(`race-${p.key}-uma`);
+    if (umaSelect) umaSelect.innerHTML = `<option value="">-- Select Uma --</option>`;
+    onRacePlacementUmaChange(p.key);
+  });
+  resetRacePointInputs();
+  selectNextTrackInForm();
+}
+
+function setRaceFormEditMode(match) {
+  editingMatchId = match ? match.id : null;
+  const form = document.getElementById('record-race-form');
+  const submitBtn = document.getElementById('race-submit-btn');
+  const cancelBtn = document.getElementById('race-cancel-edit-btn');
+  const banner = document.getElementById('race-edit-banner');
+  if (form) form.classList.toggle('editing', !!match);
+  if (submitBtn) submitBtn.textContent = match ? `💾 Save Changes to Race #${match.raceNumber}` : '💾 Record Race Result & Update Standings';
+  if (cancelBtn) cancelBtn.classList.toggle('hidden', !match);
+  if (banner) {
+    banner.classList.toggle('hidden', !match);
+    banner.textContent = match ? `✏️ Editing Race #${match.raceNumber} – ${match.title}` : '';
+  }
+  renderMatchHistoryList(matches, calculateScoringStats().trackStats);
+}
+
+function startEditMatch(matchId) {
+  const m = matches.find(x => x.id === matchId);
+  if (!m) return;
+  const trackSelect = document.getElementById('race-track-select');
+  if (trackSelect) trackSelect.value = getMatchTrackId(m);
+  const titleInput = document.getElementById('race-title-input');
+  if (titleInput) titleInput.value = m.title || '';
+
+  PLACEMENTS.forEach(p => {
+    const d = m[p.key] || {};
+    const teamSelect = document.getElementById(`race-${p.key}-team`);
+    if (teamSelect) teamSelect.value = d.team || '';
+    populateTeamMemberSelect(d.team || '', document.getElementById(`race-${p.key}-player`), d.player || '');
+    const umaSelect = document.getElementById(`race-${p.key}-uma`);
+    if (d.team) populateTeamUmaSelect(d.team, umaSelect, d.uma || '');
+    else if (umaSelect) umaSelect.innerHTML = `<option value="">-- Select Uma --</option>`;
+    // Keep an Uma that is no longer on the team's roster selectable, so editing does not drop it.
+    if (d.uma && umaSelect && umaSelect.value !== d.uma) {
+      umaSelect.insertAdjacentHTML('beforeend', `<option value="${d.uma}">${d.uma} (not on roster)</option>`);
+      umaSelect.value = d.uma;
+    }
+    onRacePlacementUmaChange(p.key);
+    const ptsInput = document.getElementById(`race-${p.key}-pts`);
+    if (ptsInput) ptsInput.value = getPlacementPts(d, p.key);
+  });
+
+  setRaceFormEditMode(m);
+  document.getElementById('record-race-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelEditMatch() {
+  setRaceFormEditMode(null);
+  clearRaceForm();
+}
+
 function recordRaceResult(e) {
   if (e) e.preventDefault();
 
   const raceTrack = document.getElementById('race-track-select')?.value || 'tokyo-2400';
   const raceTitle = document.getElementById('race-title-input')?.value.trim() || `Race ${matches.length + 1}`;
-  
+
   const entries = {};
   PLACEMENTS.forEach(p => {
     entries[p.key] = {
@@ -237,7 +423,7 @@ function recordRaceResult(e) {
   });
 
   if (PLACEMENTS.some(p => !entries[p.key].team)) {
-    alert("Please select the teams for all 1st to 5th placements.");
+    alert("Please select the teams (or players) for all 1st to 5th placements.");
     return;
   }
 
@@ -259,7 +445,26 @@ function recordRaceResult(e) {
     return;
   }
 
+  const before = JSON.stringify(matches);
   const now = new Date();
+
+  if (editingMatchId) {
+    const idx = matches.findIndex(m => m.id === editingMatchId);
+    if (idx === -1) {
+      alert("The race being edited no longer exists.");
+      cancelEditMatch();
+      return;
+    }
+    const old = matches[idx];
+    matches[idx] = { ...old, trackId: raceTrack, title: raceTitle, ...entries, editedAt: now.toISOString() };
+    setRaceFormEditMode(null);
+    clearRaceForm();
+    renderScoringTab();
+    saveStateToStorage();
+    offerUndo(`Race #${old.raceNumber} updated.`, before);
+    return;
+  }
+
   const newMatch = {
     id: 'match_' + now.getTime(),
     raceNumber: matches.length + 1,
@@ -271,26 +476,26 @@ function recordRaceResult(e) {
 
   matches.push(newMatch);
 
-  const currentTrackId = document.getElementById('race-track-select')?.value || raceTrack;
-  const trackMeta = getTrackDisplayMeta(currentTrackId);
-  if (document.getElementById('race-title-input')) {
-    document.getElementById('race-title-input').value = `Race ${matches.length + 1} - ${trackMeta.name}`;
-  }
-
   renderScoringTab();
+  selectNextTrackInForm();
   saveStateToStorage();
+  offerUndo(`Race #${newMatch.raceNumber} recorded.`, before);
 }
 
 function deleteMatch(matchId) {
   if (!confirm("Are you sure you want to delete this race result?")) return;
   saveStateToStorage();
   createBackup('Before deleting a race');
+  const before = JSON.stringify(matches);
+  const removed = matches.find(m => m.id === matchId);
   matches = matches.filter(m => m.id !== matchId);
   matches.forEach((m, idx) => {
     m.raceNumber = idx + 1;
   });
+  if (editingMatchId === matchId) cancelEditMatch();
   renderScoringTab();
   saveStateToStorage();
+  if (removed) offerUndo(`Race "${removed.title}" deleted.`, before);
 }
 
 function resetTournamentScores() {
@@ -307,21 +512,42 @@ function resetTournamentScores() {
   saveStateToStorage();
 }
 
-function populateTeamMemberSelect(teamKey, selectEl, currentVal = '') {
-  if (!selectEl) return;
+function getTeamMembers(teamKey) {
   const cap = teams[teamKey]?.cap || `Captain ${teams[teamKey]?.name || teamKey}`;
-  const players = teams[teamKey]?.players || [];
+  return { cap, players: (teams[teamKey]?.players || []).filter(p => p !== cap) };
+}
 
-  let html = `<option value="">-- Select Player --</option>`;
-  if (cap) {
-    html += `<option value="${cap}">👑 ${cap} (Captain)</option>`;
-  }
-  players.filter(p => p !== cap).forEach((p, i) => {
+function getPlayerTeam(playerName) {
+  return TEAM_KEYS.find(t => {
+    const { cap, players } = getTeamMembers(t);
+    return cap === playerName || players.includes(playerName);
+  }) || null;
+}
+
+function teamMemberOptions(teamKey) {
+  const { cap, players } = getTeamMembers(teamKey);
+  let html = cap ? `<option value="${cap}">👑 ${cap} (Captain)</option>` : '';
+  players.forEach((p, i) => {
     html += `<option value="${p}">${i + 1}. ${p}</option>`;
   });
+  return html;
+}
 
+// With a team: that team's members. Without one: every player, grouped by team,
+// so a placement can be filled by picking the player alone.
+function populateTeamMemberSelect(teamKey, selectEl, currentVal = '') {
+  if (!selectEl) return;
+  let html = `<option value="">-- Select Player --</option>`;
+  if (teamKey) {
+    html += teamMemberOptions(teamKey);
+  } else {
+    TEAM_KEYS.forEach(t => {
+      html += `<optgroup label="${teamEmoji(t)} ${teams[t]?.name || t} Team">${teamMemberOptions(t)}</optgroup>`;
+    });
+  }
   selectEl.innerHTML = html;
   if (currentVal) selectEl.value = currentVal;
+  if (selectEl.selectedIndex < 0) selectEl.value = '';
 }
 
 function populateTeamUmaSelect(teamKey, selectEl, currentVal = '') {
@@ -335,39 +561,42 @@ function populateTeamUmaSelect(teamKey, selectEl, currentVal = '') {
 
   selectEl.innerHTML = html;
   if (currentVal) selectEl.value = currentVal;
+  if (selectEl.selectedIndex < 0) selectEl.value = '';
 }
 
 function onRacePlacementTeamChange(placement) {
   const teamSelect = document.getElementById(`race-${placement}-team`);
   const playerSelect = document.getElementById(`race-${placement}-player`);
   const umaSelect = document.getElementById(`race-${placement}-uma`);
-  const umaThumb = document.getElementById(`race-${placement}-uma-thumb`);
 
   if (!teamSelect || !playerSelect || !umaSelect) return;
 
   const chosenTeam = teamSelect.value;
-  if (chosenTeam) {
-    populateTeamMemberSelect(chosenTeam, playerSelect);
-    populateTeamUmaSelect(chosenTeam, umaSelect);
-  } else {
-    playerSelect.innerHTML = `<option value="">-- Select Player --</option>`;
-    umaSelect.innerHTML = `<option value="">-- Select Uma --</option>`;
-  }
+  // Keep the chosen player only if they belong to the new team.
+  const keepPlayer = chosenTeam && getPlayerTeam(playerSelect.value) === chosenTeam ? playerSelect.value : '';
+  const keepUma = keepPlayer ? umaSelect.value : '';
+  populateTeamMemberSelect(chosenTeam, playerSelect, keepPlayer);
+  if (chosenTeam) populateTeamUmaSelect(chosenTeam, umaSelect, keepUma);
+  else umaSelect.innerHTML = `<option value="">-- Select Uma --</option>`;
 
-  if (umaThumb) {
-    umaThumb.classList.add('hidden');
-    umaThumb.src = '';
-  }
+  onRacePlacementUmaChange(placement);
 }
 
 function onRacePlacementPlayerChange(placement) {
+  const teamSelect = document.getElementById(`race-${placement}-team`);
   const playerSelect = document.getElementById(`race-${placement}-player`);
   const umaSelect = document.getElementById(`race-${placement}-uma`);
-  const umaThumb = document.getElementById(`race-${placement}-uma-thumb`);
 
   if (!playerSelect || !umaSelect) return;
 
   const player = playerSelect.value;
+  // Picking a player fills in their team (and below, their paired Uma).
+  const playerTeam = player ? getPlayerTeam(player) : null;
+  if (playerTeam && teamSelect && teamSelect.value !== playerTeam) {
+    teamSelect.value = playerTeam;
+    populateTeamMemberSelect(playerTeam, playerSelect, player);
+    populateTeamUmaSelect(playerTeam, umaSelect);
+  }
   if (player && playerUmaAssignments[player]) {
     const pairedUma = playerUmaAssignments[player];
     for (let opt of umaSelect.options) {
@@ -452,6 +681,7 @@ function renderPlayerUmaPairingsUI() {
 }
 
 function renderScoringTab() {
+  prunePlayerUmaAssignments();
   const { teamStats, playerStats, umaStats, trackStats } = calculateScoringStats();
 
   const sortedTeams = [...TEAM_KEYS].sort((a, b) => {
@@ -524,10 +754,8 @@ function renderScoringTab() {
     if (teamSelect && playerSelect && umaSelect) {
       const curPlayer = playerSelect.value;
       const curUma = umaSelect.value;
-      if (teamSelect.value) {
-        populateTeamMemberSelect(teamSelect.value, playerSelect, curPlayer);
-        populateTeamUmaSelect(teamSelect.value, umaSelect, curUma);
-      }
+      populateTeamMemberSelect(teamSelect.value, playerSelect, curPlayer);
+      if (teamSelect.value) populateTeamUmaSelect(teamSelect.value, umaSelect, curUma);
       onRacePlacementUmaChange(p);
     }
   });
@@ -539,6 +767,8 @@ function renderScoringTab() {
   renderMatchHistoryList(matches, trackStats);
 
   renderScopedLeaderboard();
+  renderTrackProgress();
+  if (typeof renderPresentation === 'function') renderPresentation();
 }
 
 function teamEmoji(t) {
@@ -547,6 +777,7 @@ function teamEmoji(t) {
 
 function setLeaderboardScope(scope) {
   leaderboardScope = scope;
+  try { localStorage.setItem(LEADERBOARD_SCOPE_KEY, scope); } catch (e) {}
   renderScopedLeaderboard();
 }
 
@@ -906,10 +1137,11 @@ function renderMatchHistoryList(matches, trackStats) {
     const meta = getTrackDisplayMeta(tId);
 
     return `
-      <div class="match-history-card">
+      <div class="match-history-card ${editingMatchId === m.id ? 'editing' : ''}">
         <div class="match-card-top">
           <div class="match-title-wrap">
             <span class="match-round-tag">RACE #${m.raceNumber}</span>
+            ${m.editedAt ? `<span class="match-edited-tag" title="Edited ${new Date(m.editedAt).toLocaleString()}">edited</span>` : ''}
             <span class="match-track-pill" style="background:${meta.accentBg}; color:${meta.tagColor}; border:1px solid ${meta.tagColor};">
               ${meta.icon} ${meta.name} • ${meta.category}
             </span>
@@ -917,7 +1149,8 @@ function renderMatchHistoryList(matches, trackStats) {
           </div>
           <div style="display:flex; align-items:center; gap:10px;">
             <span class="match-time-tag">⏱️ ${m.timestamp}</span>
-            <button class="btn-delete-match" onclick="deleteMatch('${m.id}')" title="Delete Race Result">✕</button>
+            <button class="btn-edit-match edit-only" onclick="startEditMatch('${m.id}')" title="Edit Race Result">✏️</button>
+            <button class="btn-delete-match edit-only" onclick="deleteMatch('${m.id}')" title="Delete Race Result">✕</button>
           </div>
         </div>
 
@@ -945,4 +1178,109 @@ function renderMatchHistoryList(matches, trackStats) {
       </div>
     `;
   }).join('');
+}
+
+// ---------- Presentation mode ----------
+
+function openPresentation() {
+  let overlay = document.getElementById('present-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'present-overlay';
+    overlay.className = 'present-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Presentation mode');
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePresentation(); });
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && overlay.classList.contains('open')) closePresentation();
+    });
+  }
+  overlay.classList.add('open');
+  renderPresentation();
+  if (overlay.requestFullscreen) overlay.requestFullscreen().catch(() => {});
+}
+
+function closePresentation() {
+  const overlay = document.getElementById('present-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  overlay.classList.remove('open');
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+
+function renderPresentation() {
+  const overlay = document.getElementById('present-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+
+  const scope = parseLeaderboardScope();
+  const overall = calculateScoringStats();
+  const scoped = scope.kind === 'track' ? calculateScoringStats(scope.id) : overall;
+  const teamStats = overall.teamStats;
+  const rankedTeams = [...TEAM_KEYS].sort((a, b) => teamStats[b].points - teamStats[a].points || teamStats[b].wins - teamStats[a].wins);
+  const medals = ['🥇', '🥈', '🥉'];
+
+  let players = Object.values(scoped.playerStats);
+  if (scope.kind === 'team') players = players.filter(p => p.team === scope.id);
+  players = players.filter(p => p.races > 0)
+    .sort((a, b) => b.points - a.points || b.wins - a.wins || b.podiums - a.podiums)
+    .slice(0, 5);
+
+  let scopeTitle = 'Overall';
+  if (scope.kind === 'team') scopeTitle = `${teamEmoji(scope.id)} ${teams[scope.id]?.name || scope.id} Team`;
+  if (scope.kind === 'track') { const meta = getTrackDisplayMeta(scope.id); scopeTitle = `${meta.icon} ${meta.name}`; }
+
+  const last = matches[matches.length - 1];
+  const lastMeta = last ? getTrackDisplayMeta(getMatchTrackId(last)) : null;
+  const next = getNextTrackId();
+  const img = name => (typeof getUmaImageUrl === 'function' ? getUmaImageUrl(name) : '');
+
+  overlay.innerHTML = `
+    <div class="present-top">
+      <div class="present-brand">🏆 3 Goddesses Cup · Standings</div>
+      <div class="present-meta">🏁 ${matches.length} races${next ? ` · Next: ${getTrackDisplayMeta(next).icon} ${getTrackDisplayMeta(next).name}` : ''}</div>
+      <button type="button" class="present-close" onclick="closePresentation()" aria-label="Close presentation">✕</button>
+    </div>
+
+    <div class="present-teams">
+      ${rankedTeams.map((t, i) => `
+        <div class="present-team ${t}">
+          <div class="present-team-rank">${medals[i]}</div>
+          <div class="present-team-name">${teams[t]?.name || t} Team</div>
+          <div class="present-team-pts">${teamStats[t].points}<span>pts</span></div>
+          <div class="present-team-sub">${teamStats[t].wins} wins · ${teamStats[t].podiums} podiums</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="present-bottom">
+      <div class="present-panel">
+        <div class="present-panel-title">Top Players · ${scopeTitle}</div>
+        ${players.length ? players.map((p, i) => {
+          const uma = scope.kind === 'track' ? (p.lastUma || p.assignedUma) : (p.assignedUma || p.lastUma);
+          return `
+          <div class="present-row">
+            <span class="present-row-rank">${i + 1}</span>
+            ${uma ? `<img src="${img(uma)}" alt="" class="present-row-img" onerror="this.style.visibility='hidden'">` : '<span class="present-row-img"></span>'}
+            <span class="present-row-name">${p.name}<small>${uma || ''}</small></span>
+            <span class="present-row-team ${p.team}">●</span>
+            <span class="present-row-pts">${p.points}</span>
+          </div>`;
+        }).join('') : '<div class="present-empty">No results yet</div>'}
+      </div>
+
+      <div class="present-panel">
+        <div class="present-panel-title">Last Race${last ? ` · #${last.raceNumber} ${lastMeta.icon} ${lastMeta.name}` : ''}</div>
+        ${last ? PLACEMENTS.map(pl => {
+          const d = last[pl.key] || {};
+          return `
+          <div class="present-row">
+            <span class="present-row-rank">${pl.label.split(' ')[0]}</span>
+            ${d.uma ? `<img src="${img(d.uma)}" alt="" class="present-row-img" onerror="this.style.visibility='hidden'">` : '<span class="present-row-img"></span>'}
+            <span class="present-row-name">${d.player || 'Unspecified'}<small>${d.uma || ''}</small></span>
+            <span class="present-row-team ${d.team}">●</span>
+            <span class="present-row-pts">+${getPlacementPts(d, pl.key)}</span>
+          </div>`;
+        }).join('') : '<div class="present-empty">No races recorded yet</div>'}
+      </div>
+    </div>`;
 }

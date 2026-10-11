@@ -38,6 +38,9 @@
       <button onclick="copyShareableTournamentLink()" class="btn btn-primary btn-sm" style="background:#b45309; color:#fff; border:none;" title="Copy instant serverless share link with all tournament data">
         🔗 Share Link
       </button>
+      <button onclick="copyViewerLink()" class="btn btn-outline btn-sm" title="Copy a read-only link for players: standings and results only, no edit buttons">
+        👁️ Viewer Link
+      </button>
       <button onclick="exportTournamentSaveFile()" class="btn btn-outline btn-sm" title="Download backup save file (.json)">
         💾 Export Save
       </button>
@@ -69,6 +72,7 @@
       </nav>
     </div>
   </header>
+  <div id="viewer-banner" class="viewer-banner hidden"></div>
 
   <main>
 
@@ -340,6 +344,9 @@
             <button id="btn-undo-pick" onclick="undoLastDraftPick()" class="btn btn-outline btn-sm" title="Undo the previous pick">
               ↩️ Undo Pick
             </button>
+            <button onclick="exportDraftResults()" class="btn btn-outline btn-sm" title="Download only the draft results (teams, Umas, prices, pick order) as .json">
+              📤 Export Draft JSON
+            </button>
             <button onclick="resetUmaPools()" class="btn btn-outline btn-sm" style="color:var(--team-red);" title="Reset the entire draft">
               🔄 Reset Draft
             </button>
@@ -510,7 +517,10 @@
           <p>Record top 5 race placements (<span id="placement-points-legend"></span>) and monitor live team and player standings.</p>
         </div>
         <div class="score-hero-actions">
-          <button onclick="resetTournamentScores()" class="btn btn-outline btn-sm" style="color:var(--team-red);">
+          <button onclick="openPresentation()" class="btn btn-primary btn-sm" title="Full-screen standings for streams and screen sharing (Esc to close)">
+            📺 Presentation
+          </button>
+          <button onclick="resetTournamentScores()" class="btn btn-outline btn-sm edit-only" style="color:var(--team-red);">
             🔄 Reset Scores
           </button>
         </div>
@@ -544,10 +554,12 @@
               Course-by-course breakdown: Winners, podium finishers, and team points scored on each individual racetrack.
             </p>
           </div>
-          <button type="button" onclick="renderTrackResultsBoard()" class="btn btn-outline btn-sm" title="Refresh Track Standings">
+          <button type="button" onclick="renderScoringTab()" class="btn btn-outline btn-sm" title="Refresh Track Standings">
             🔄 Refresh
           </button>
         </div>
+
+        <div id="track-progress-row" class="track-progress-row"></div>
 
         <div id="track-results-cards-grid" class="track-results-cards-grid"></div>
 
@@ -566,6 +578,8 @@
           </div>
 
           <form id="record-race-form" onsubmit="recordRaceResult(event)">
+            <div id="race-edit-banner" class="race-edit-banner hidden"></div>
+            <p class="race-form-tip">Tip: just pick the player. Their team and paired Uma fill in automatically.</p>
             <div style="margin-bottom:14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
                 <label class="lbl" style="margin:0;">Race Course & Title:</label>
@@ -764,9 +778,8 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; margin-top:8px;">
-              💾 Record Race Result & Update Standings
-            </button>
+            <button type="submit" id="race-submit-btn" class="btn btn-primary" style="width:100%; padding:12px; margin-top:8px;">💾 Record Race Result & Update Standings</button>
+            <button type="button" id="race-cancel-edit-btn" class="btn btn-outline hidden" style="width:100%; padding:10px; margin-top:8px;" onclick="cancelEditMatch()">Cancel editing</button>
           </form>
         </div>
 

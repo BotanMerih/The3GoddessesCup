@@ -49,13 +49,27 @@ function switchTab(tabNum, save = true) {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof resetRacePointInputs === 'function') resetRacePointInputs();
-  checkAndLoadStateFromURL();
-  const hadSave = loadStateFromStorage();
-  if (hadSave) {
-    createBackup('Start of visit');
-    setSaveStatus(true, '✓ Saved data loaded');
+  const viewerRaw = getViewerStateFromURL();
+  if (viewerRaw !== null) {
+    IS_VIEWER = true;
+    document.body.classList.add('viewer-mode');
+    loadStateFromStorage(viewerRaw);
+    let sharedAt = null;
+    try { sharedAt = JSON.parse(viewerRaw).sharedAt; } catch (e) {}
+    const banner = document.getElementById('viewer-banner');
+    if (banner) {
+      banner.textContent = `👁️ Viewer mode: read-only results${sharedAt ? `, snapshot from ${new Date(sharedAt).toLocaleString()}` : ''}`;
+      banner.classList.remove('hidden');
+    }
   } else {
-    setSaveStatus(true, '✓ Autosave on');
+    checkAndLoadStateFromURL();
+    const hadSave = loadStateFromStorage();
+    if (hadSave) {
+      createBackup('Start of visit');
+      setSaveStatus(true, '✓ Saved data loaded');
+    } else {
+      setSaveStatus(true, '✓ Autosave on');
+    }
   }
 
   if (typeof renderFixedTeamsUI === 'function') renderFixedTeamsUI();
@@ -65,5 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateProgressUI();
   updateCaptainSubtitles();
   renderScoringTab();
+  if (typeof selectNextTrackInForm === 'function') selectNextTrackInForm();
+  if (IS_VIEWER) switchTab(4, false);
 });
 

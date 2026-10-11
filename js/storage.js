@@ -15,6 +15,8 @@ const SAVE_VERSION = 5;
 const BACKUP_KEY = 'UMA_3GODDESSES_BACKUPS';
 const MAX_BACKUPS = 20;
 const AUTO_BACKUP_INTERVAL_MS = 10 * 60 * 1000;
+// True when the page was opened from a read-only viewer link (#view=...).
+let IS_VIEWER = false;
 
 // ---------- Validation & migration ----------
 
@@ -40,7 +42,7 @@ function validateState(state) {
   ['availablePot1', 'availablePot2', 'availablePot3', 'snakeDraftOrder', 'pickHistory', 'umaPickHistory', 'matches'].forEach(k => {
     if (state[k] !== undefined && !Array.isArray(state[k])) errors.push(`"${k}" must be a list.`);
   });
-  ['currentPickIndex', 'currentRoundRobinIndex', 'turnDuration'].forEach(k => {
+  ['currentPickIndex', 'currentRoundRobinIndex', 'turnDuration', 'racesPerTrack'].forEach(k => {
     if (state[k] !== undefined && typeof state[k] !== 'number') errors.push(`"${k}" must be a number.`);
   });
   if (state.tracksState !== undefined) {
@@ -141,6 +143,7 @@ function writeBackups(list) {
 
 // Stores a copy of the given save (default: the current one). Skips exact duplicates of the newest backup.
 function createBackup(reason, raw) {
+  if (IS_VIEWER) return false;
   try {
     if (raw === undefined) raw = localStorage.getItem(STORAGE_KEY);
   } catch (e) {
@@ -296,6 +299,7 @@ function buildState() {
     turnDuration,
     matches,
     bonusPoints,
+    racesPerTrack: (typeof racesPerTrack !== 'undefined' ? racesPerTrack : 1),
     playerUmaAssignments: (typeof playerUmaAssignments !== 'undefined' ? playerUmaAssignments : {}),
     // The legacy player-draft view no longer exists in index.html; treat it as inactive when missing.
     isDraftActive: document.getElementById('draft-live-view')?.classList.contains('hidden') === false,
@@ -309,6 +313,8 @@ function buildState() {
 }
 
 function saveStateToStorage() {
+  // A viewer link shows a snapshot; it never writes to the viewer's own browser save.
+  if (IS_VIEWER) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(buildState()));
     lastSaveOk = true;
@@ -322,11 +328,16 @@ function saveStateToStorage() {
   maybeAutoBackup();
 }
 
-function loadStateFromStorage() {
+// rawOverride: load this save string instead of the browser's own save (viewer links).
+function loadStateFromStorage(rawOverride = null) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = rawOverride !== null ? rawOverride : localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const parsed = parseSaveString(raw);
+    if (parsed.errors && rawOverride !== null) {
+      alert('This viewer link could not be loaded:\n\n- ' + parsed.errors.join('\n- '));
+      return false;
+    }
     if (parsed.errors) {
       // Keep the broken save as a backup instead of silently overwriting it on the next save.
       createBackup('Unreadable save found at startup', raw);
@@ -386,8 +397,10 @@ function loadStateFromStorage() {
       matches = state.matches;
     }
     if (state.bonusPoints) bonusPoints = state.bonusPoints;
+    if (typeof state.racesPerTrack === 'number' && state.racesPerTrack >= 1) racesPerTrack = state.racesPerTrack;
     if (state.playerUmaAssignments && typeof state.playerUmaAssignments === 'object') {
       playerUmaAssignments = state.playerUmaAssignments;
+      if (typeof prunePlayerUmaAssignments === 'function') prunePlayerUmaAssignments();
     }
 
     if (typeof state.turnDuration === 'number') {
@@ -448,6 +461,38 @@ function copyShareableTournamentLink() {
     });
   } catch (err) {
     alert("Failed to generate share link: " + err.message);
+  }
+}
+
+// A read-only link: opens straight on the scoring tab with all editing hidden,
+// and never touches the viewer's own saved data. It is a snapshot of right now.
+function copyViewerLink() {
+  saveStateToStorage();
+  const state = buildState();
+  state.sharedAt = Date.now();
+  try {
+    const url = new URL(window.location.href.split('#')[0].split('?')[0]);
+    url.hash = `view=${utf8ToBase64(JSON.stringify(state))}`;
+    const fullUrl = url.toString();
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      alert("👁️ Viewer link copied!\n\nPlayers who open it see the standings and results only, with no edit buttons.\n\nIt is a snapshot of the results right now: copy a new link after more races are recorded.");
+    }).catch(() => {
+      prompt("Copy this viewer URL:", fullUrl);
+    });
+  } catch (err) {
+    alert("Failed to generate viewer link: " + err.message);
+  }
+}
+
+// Returns the save string from a #view=... link, or null.
+function getViewerStateFromURL() {
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith('#view=')) return null;
+  try {
+    return base64ToUtf8(hash.substring(6));
+  } catch (e) {
+    alert('This viewer link is broken or was cut off.');
+    return null;
   }
 }
 

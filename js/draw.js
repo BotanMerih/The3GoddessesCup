@@ -238,10 +238,55 @@ function sellUmaForTeam(umaName, teamKey) {
 
   const cur = getCurrentDraftPick();
   selectedDrawTeam = cur.isComplete ? teamKey : cur.teamKey;
+  if (typeof prunePlayerUmaAssignments === 'function') prunePlayerUmaAssignments();
 
   playBeep(440, 'sine', 0.12);
   renderMarketUI();
   saveStateToStorage();
+}
+
+// Downloads only the draft results (rosters, prices, pick order) as a standalone .json file.
+function exportDraftResults() {
+  syncUmaPickHistoryWithTeams();
+  const total = TEAM_KEYS.reduce((n, t) => n + (teams[t]?.umas?.length || 0), 0);
+  if (total === 0) {
+    alert("No Umas have been drafted yet.");
+    return;
+  }
+  const pickOf = (uma, t) => umaPickHistory.find(h => h.uma === uma && h.team === t);
+
+  const result = {
+    type: "3-goddesses-draft-results",
+    exportedAt: new Date().toISOString(),
+    budgetPerTeam: TEAM_MAX_BUDGET,
+    minUmasPerTeam: MIN_UMAS_PER_TEAM,
+    maxUmasPerTeam: MAX_UMAS_PER_TEAM,
+    teams: {},
+    picks: [...umaPickHistory]
+      .sort((a, b) => (a.pickNumber || 0) - (b.pickNumber || 0))
+      .map(h => ({ pickNumber: h.pickNumber, round: h.round, team: h.team, uma: h.uma, price: getUmaPrice(h.uma) }))
+  };
+
+  TEAM_KEYS.forEach(t => {
+    const team = teams[t];
+    const spent = getTeamSpent(t);
+    result.teams[t] = {
+      name: team?.name || t,
+      captain: team?.cap || '',
+      players: [...(team?.players || [])],
+      draftDone: !!team?.draftDone,
+      umaCount: team?.umas?.length || 0,
+      spent,
+      remaining: getTeamBudget(t),
+      umas: (team?.umas || []).map(u => {
+        const pick = pickOf(u, t);
+        return { name: u, price: getUmaPrice(u), pickNumber: pick?.pickNumber ?? null, round: pick?.round ?? null };
+      })
+    };
+  });
+
+  const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  downloadJson(JSON.stringify(result, null, 2), `umanity_draft_results_${dateStr}.json`);
 }
 
 function resetUmaPools() {
@@ -254,6 +299,7 @@ function resetUmaPools() {
   });
   umaPickHistory = [];
   selectedDrawTeam = 'red';
+  if (typeof prunePlayerUmaAssignments === 'function') prunePlayerUmaAssignments();
 
   playBeep(350, 'triangle', 0.15);
   renderMarketUI();
